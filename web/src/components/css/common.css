@@ -1,0 +1,689 @@
+body {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif,
+    'Nunito Sans', 'IBM Plex Sans JP' !important;
+  font-size: 14px;
+}
+
+.HeaderClass {
+  background-color: #30323f;
+  /* background-color: blue; */
+  align-items: left;
+  padding: 15px !important;
+  height: 75px;
+  margin: 0px;
+  vertical-align: middle;
+}
+
+.ContainerClass {
+  background-color: #30323f;
+  align-items: left;
+  padding: '15px' !important;
+  /* height: 90px; */
+}
+
+.HeaderImage {
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.HeaderTitle {
+  /* color: white;
+  font-size: 24px;
+  vertical-align: middle; */
+  margin: 0px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 20px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 24px;
+  color: rgb(80, 174, 181) !important;
+}
+
+.SubHeaderTitle {
+  font-size: 29px;
+  /* color: rgb(255, 255, 255) !important;b */
+  color: black;
+  font-weight: normal;
+  vertical-align: middle;
+  margin-top: 15px !important;
+}
+
+.HeaderMenu {
+  background-color: #30323f !important;
+  color: white !important;
+}
+
+.HeaderRightMenu {
+  color: white;
+}
+
+.containerHeading {
+  display: flex;
+  justify-content: flex-start; /* Aligns the divs from the left */
+}
+
+.boxHeading {
+  padding: 10px;
+  text-align: center;
+  /* border: 1px solid black; */
+  white-space: nowrap; /* Prevents text wrapping, keeps div width based on content */
+  color: rgb(255, 255, 255) !important;
+}
+
+.SubHeaderClass {
+  background-color: white;
+  /* background-color: purple; */
+  align-items: left;
+  width: 100%;
+  height: 60px;
+  position: fixed;
+  top: 70px;
+  font-size: 16px;
+}
+
+.MainClass {
+  background-color: rgb(246, 246, 246);
+  /* background-color: blue; */
+  width: 100%;
+  position: fixed;
+  top: 130px;
+  height: 100%;
+  padding: 5px;
+  margin: 0px;
+  overflow: visible;
+  align-items: flex-start;
+}
+
+.footer {
+  background: #fcfcff;
+  box-shadow: 0px -1px 0px #e7edf7;
+  bottom: 0;
+  height: 35px;
+  left: 0;
+  margin: 0;
+  margin-right: 25px;
+  margin-left: 25px;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+.fontSize12 {
+  font-size: 12px;
+}
+
+/* MyComponent.css */
+
+/* Style for the main component container */
+.my-component {
+  text-align: center;
+  /* padding-top: 20px; */
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 1px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+/* Style for the top section */
+.header-section {
+  background-color: rgb(229, 229, 229);
+  /* background-color: rgb(229,229,229); */
+  padding: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* Style for the top section */
+.top-section {
+  background-color: #f8f8f8;
+  padding: 10px;
+  margin-bottom: 20px;
+
+  text-align: left;
+}
+
+/* Style for the bottom section */
+.bottom-section {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Style for the left section */
+.left-section {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 10px;
+  margin-right: 10px;
+  height: 450px;
+  /* 100% of viewport height */
+}
+
+/* Style for the right section */
+.right-section {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 10px;
+  margin-left: 10px;
+  height: 450px;
+  /* 100% of viewport height */
+}
+
+.full-width-textarea {
+  width: 100%;
+  height: 85%;
+  border: 1px solid #ccc;
+  padding: 10px;
+  resize: none;
+}
+
+/* Style for the left section */
+.upload-section {
+  background-color: #ffffff;
+  padding: 10px;
+  margin-right: 10px;
+}
+
+.text-heading {
+  color: black;
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold !important;
+  margin: 10px;
+}
+
+.text-sub-heading {
+  color: black;
+  text-align: left;
+  font-size: 20px;
+  font-weight: bold !important;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  margin-left: 10px;
+  margin-right: 0px;
+  padding: 0px;
+}
+
+.text-sub-heading2 {
+  color: black;
+  text-align: left;
+  font-size: 20px;
+  font-weight: bold !important;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  margin-left: 10px;
+  margin-right: 0px;
+  padding: 0px;
+}
+
+.text-heading-label {
+  color: black;
+  text-align: center;
+  font-size: 12px;
+  margin: 10px;
+}
+
+.text-sub-heading-label {
+  color: black;
+  text-align: left;
+  font-size: 12px;
+  margin-top: 10px;
+  margin-bottom: 0px;
+  margin-left: 10px;
+  margin-right: 0px;
+  padding: 0px;
+}
+
+.text-sub-heading-label2 {
+  color: black;
+  text-align: left;
+  font-size: 12px;
+  margin-top: 10px;
+  margin-bottom: 0px;
+  margin-left: 10px;
+  margin-right: 0px;
+  padding: 0px;
+}
+
+.file-upload {
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+.input-control-lable {
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+.fin-button-1 {
+  font-size: 16px;
+  vertical-align: middle;
+  /* background-color: red; */
+  text-align: center;
+  height: 25px;
+  /* width: 200px; */
+  /* padding-top: 12px; */
+  padding: 15px;
+}
+
+.my-title-image {
+  /* background-image: url('../../components/images/title5.png'); */
+  color: black !important;
+  /* background-color: rgb(242, 244, 254); */
+  /* background-color: rgb(248, 248, 248); */
+  background-color: rgb(231, 233, 235);
+  padding-top: 30px;
+  font-weight: 200;
+  height: 90px;
+}
+
+.Header-Sub-Text {
+  /* background-image: url('../../components/images/title1.png'); */
+  color: black !important;
+  /* block-size: 6rem; */
+  padding-top: 45px;
+  padding-left: 10px;
+  font-size: 20px;
+
+  background-color: rgb(242, 244, 254);
+  padding-bottom: 20px;
+}
+
+.my-header-image {
+  /* background-image: url('../../components/images/title1.png'); */
+  color: white !important;
+  /* block-size: 6rem; */
+  font-size: 56px;
+  padding-top: 90px;
+}
+.enhanced-title {
+  color: #808080;
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.13;
+  font-weight: bold !important;
+}
+
+.enhanced-title2 {
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1.13;
+  font-weight: bold !important;
+}
+
+.enhanced-title-blue {
+  color: #0f62fe;
+}
+
+.form-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+label {
+  margin-right: 10px;
+  min-width: 100px; /* Adjust the label width as needed */
+}
+
+input {
+  flex: 1;
+  padding: 5px;
+}
+
+button {
+  margin-top: 10px;
+}
+
+.horizontal-list {
+  display: flex; /* Use flexbox to display items horizontally */
+  padding: 5px; /* Add spacing as needed */
+  vertical-align: middle;
+}
+
+.horizontal-item {
+  vertical-align: middle;
+  margin-right: 10px; /* Add spacing between items */
+}
+
+.horizontal-item-fullwidth {
+  width: 100%;
+  vertical-align: middle;
+  margin-right: 10px; /* Add spacing between items */
+}
+
+.my-textbox-row {
+  padding: 5px;
+  border: 0px solid #ccc;
+}
+
+.my-textbox {
+  width: 600px;
+  border: 1px solid #ccc;
+}
+
+.instruction-msg {
+  color: #0aa098;
+  padding: 10px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  /* font-style: italic; */
+}
+
+.mySectionTitle {
+  text-align: left;
+  padding: 20px;
+  border-bottom: 10px;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: #42464b;
+  font-weight: bold;
+  margin-left: 0px;
+  padding-left: 0px;
+}
+
+.mySectionTitle1 {
+  text-align: left;
+  padding: 10px;
+  font-size: 16px;
+}
+.mySectionTitle2 {
+  text-align: left;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.mySectionText {
+  text-align: justify;
+  padding: 20px;
+  border-bottom: 10px;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #42464b;
+}
+.mySectionTitle21 {
+  text-align: left;
+  padding-top: 40px;
+}
+
+.gan-header-section {
+  background-color: rgb(229, 229, 229);
+  padding: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.gan-text-heading {
+  color: black;
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold !important;
+  margin: 10px;
+}
+
+.gan-text-heading-label {
+  color: black;
+  text-align: center;
+  font-size: 12px;
+  margin: 10px;
+}
+
+.gan-text-sub-heading {
+  color: black;
+  text-align: left;
+  font-size: 20px;
+  font-weight: bold !important;
+  margin: 10px;
+}
+
+.gan-text-sub-heading-label {
+  color: black;
+  text-align: left;
+  font-size: 12px;
+  margin: 10px;
+}
+
+.fin-container {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+  /* width: 100%; */
+  /* overflow-x: auto; Enable horizontal scrollbar */
+  /* white-space: nowrap; Prevent text from wrapping */
+}
+
+.fin-container-in {
+  border: 0px solid #ccc;
+  padding: 0px;
+  margin: 00px;
+  text-align: left;
+  width: 100%;
+  overflow-x: auto; /* Enable horizontal scrollbar */
+  white-space: nowrap; /* Prevent text from wrapping */
+}
+
+.fin-mapping-container {
+  border-bottom: 1px solid #ccc;
+  padding: 5px;
+  margin-bottom: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.fin-mapping-container2 {
+  /* border: 1px solid #ccc; */
+  padding: 1px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  text-align: left;
+  width: 100%;
+}
+
+.fin-field-label {
+  padding: 10px;
+  text-align: left;
+  width: 300px;
+
+  /* font-weight: bold !important; */
+}
+.fin-text-box {
+  margin-top: 5px;
+  margin-left: 5px;
+  text-align: left;
+  width: 300px;
+  border: 1x solid #ccc;
+}
+
+.fin-text-box1 {
+  margin-top: 5px;
+  margin-left: 5px;
+  text-align: left;
+  width: 300px;
+  border: 1px solid #ccc;
+}
+
+.gan-dropdown-operation {
+  margin-top: 5px;
+  margin-left: 5px;
+  text-align: left;
+  width: 200px;
+}
+
+.gan-dropdown-existing-values {
+  margin-top: 5px;
+  margin-left: 5px;
+  text-align: left;
+  width: 300px;
+  padding: 1px !important;
+}
+
+.gan-dropdown-uploaded-columns {
+  margin-top: 5px;
+  margin-left: 5px;
+  text-align: left;
+  width: 350px;
+  padding: 1px !important;
+}
+
+.fin-button-icon {
+  margin-top: 10px;
+  margin-left: 5px;
+  margin-bottom: 10px;
+
+  text-align: center;
+  padding: 7px;
+  width: 35px;
+  height: 35px;
+  color: white;
+  /* background-color: #9897A9; */
+  /* background-color: #808588; */
+  background-color: #808183;
+  /* background-color: #bfd8ce; */
+}
+
+.fin-button-icon2 {
+  margin-top: 10px;
+  margin-left: 5px;
+  margin-bottom: 10px;
+  text-align: center;
+  padding: 7px;
+  width: 35px;
+  height: 35px;
+  color: rgb(12, 125, 212);
+  background-color: transparent;
+}
+.fin-row {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.fin-column {
+  flex-basis: 200px;
+  /* margin: 10px; */
+  /* padding: 10px; */
+  /* border: 1px solid #ccc; */
+}
+
+.fin-button {
+  text-align: center;
+  /* background-color: #ADADC9; */
+  background-color: #9897a9;
+  width: 90px;
+  margin: 0px;
+  margin-top: 5px;
+  margin-left: 5px;
+}
+
+.fin-table {
+  padding: 1px;
+  width: 100%;
+}
+
+.fin-validation-error {
+  color: red;
+}
+
+.fin-header-section {
+  background-color: rgb(229, 229, 229);
+  padding: 1px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.fin-text-heading {
+  color: black;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold !important;
+  margin: 5px;
+  padding: 1px;
+}
+
+.fin-text-heading-label {
+  color: black;
+  text-align: center;
+  font-size: 12px;
+  margin: 5px;
+}
+
+.my-tabs-group-content {
+  padding-top: 15px;
+  padding-left: 20px;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.full-width-textarea {
+  width: 100%;
+  height: 85%;
+  border: 1px solid #ccc;
+  padding: 10px;
+  resize: none;
+}
+
+.template-column-class {
+  padding: '8px';
+  border: '1px solid #ddd';
+  margin-bottom: '4px';
+  background-color: white;
+  cursor: 'move' l;
+}
+
+.list-container {
+  max-width: 600px;
+  margin: 1px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 1px;
+}
+
+.file-class {
+  width: 540px;
+}
+
+.list-item {
+  display: flex;
+  align-items: left;
+  padding: 5px;
+  margin: 1px;
+  border-bottom: 1px solid #ddd;
+}
+
+.list-item-left {
+  flex: 1;
+  margin: 1px;
+}
+
+.list-item-right {
+  flex: 1;
+  text-align: left;
+  margin: 1px;
+}
+
+.instruction-label {
+  padding: 8px;
+  margin-bottom: 4px;
+  font-size: 14px;
+  /* font-weight: bold !important; */
+}
+
+.button-excel {
+  margin-bottom: 15px;
+  font-size: 14px;
+  margin-top: 15px;
+  width: 140px;
+}

@@ -1,0 +1,59 @@
+@use '@carbon/react';
+@use '@carbon/react/scss/breakpoint' as *;
+@use '@carbon/styles';
+
+// Only import AppHeader if you're using it
+// @use '@/components/AppHeader/_app-header';
+
+@use '@/components/Info/info';
+
+@use '@/app/home/landing-page';
+@use '@/app/repos/repo-page';
+
+/// Remove overrides once Carbon bugs are fixed upstream.
+/// Need grid option to not add page gutters at large viewports, to also use when nesting grids
+/// @link https://github.com/carbon-design-system/carbon/issues/2792
+@media (min-width: 42rem) {
+  .cds--grid--no-gutter {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/// Padding was introduced in 10.3.0, needs an option to let grid set the viewport gutter
+/// @link https://github.com/carbon-design-system/carbon/issues/3010
+.cds--content {
+  // margin-top: rem(-40px);
+  padding: 0;
+  //  background: var(--cds-background);
+}
+
+.cds--content .cds--css-grid {
+  max-width: 100%;
+  @include breakpoint(md) {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+// Global styles
+:root {
+  --max-width: 1100px;
+  --border-radius: 12px;
+  --font-mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono',
+    'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro',
+    'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+}
+
+// Add any global styles here
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1rem;
+}
