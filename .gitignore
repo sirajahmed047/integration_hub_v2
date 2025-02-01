@@ -35,7 +35,9 @@ myworkings
 */.DS_Store
 
 ####  ---------- General Python/Node/React ----------
-node_modules
+node_modules/
+web/node_modules/
+**/node_modules
 build
 .next
 **/.chroma
