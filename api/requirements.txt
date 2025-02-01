@@ -1,0 +1,16 @@
+Flask==2.0.1
+Werkzeug==2.0.1
+python-dotenv==0.19.0
+flask-cors==3.0.10
+flask-restful
+flask-httpauth
+requests
+boto3
+pandas
+xlsxwriter
+Flask-BasicAuth
+flask-login
+ibm-cloud-sdk-core
+ibm_watson
+simplejson
+openpyxl
