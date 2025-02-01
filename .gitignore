@@ -80,3 +80,15 @@ out
 /output
 /api/config/envizi-config.json
 ####  ---------- Project Specific End ----------
+
+# Dependencies
+node_modules
+**/node_modules
+.next
+**/.next
+
+# Next.js specific
+**/*.node
+web/.next/
+web/node_modules/
+web/.swc/
