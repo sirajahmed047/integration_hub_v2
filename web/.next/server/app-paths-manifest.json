@@ -1,0 +1,7 @@
+{
+  "/webhooks/page": "app/webhooks/page.js",
+  "/webhookdetail/page": "app/webhookdetail/page.js",
+  "/page": "app/page.js",
+  "/api/webhook/detail/route": "app/api/webhook/detail/route.js",
+  "/api/webhook/list/route": "app/api/webhook/list/route.js"
+}

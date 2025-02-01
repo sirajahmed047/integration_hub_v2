@@ -19,21 +19,28 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  // For testing, return a sample config
-  return NextResponse.json({
-    success: true,
-    data: {
-      id: 'test-webhook',
-      name: 'Test Webhook',
-      endpoint: 'https://api.example.com/data',
-      method: 'GET',
-      headers: {},
-      envizi: {
-        apiKey: '',
-        endpoint: '',
-        organizationId: ''
-      },
-      mapping: []
-    }
-  });
+  try {
+    // For testing, return a sample config
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: 'test-webhook',
+        name: 'Test Webhook',
+        endpoint: 'https://api.example.com/data',
+        method: 'GET',
+        headers: {},
+        envizi: {
+          apiKey: '',
+          endpoint: '',
+          organizationId: ''
+        },
+        mapping: []
+      }
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch webhook config' },
+      { status: 500 }
+    );
+  }
 } 

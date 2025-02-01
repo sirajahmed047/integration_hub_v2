@@ -4,7 +4,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import EnvUtility from '../EnvUtility/EnvUtility';
 
-class ApiUtility {
+export default class ApiUtility {
   constructor() {
     this.envUtility = new EnvUtility();
   }
@@ -34,6 +34,14 @@ class ApiUtility {
         if (errorCallBack) errorCallBack(error);
       });
   };
-}
 
-export default ApiUtility;
+  async getRequest(url) {
+    try {
+      const response = await fetch(url);
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  }
+}

@@ -1,5 +1,6 @@
 'use client';
 import React, { Component } from 'react';
+import ApiUtility from '../../components/ApiUtility/ApiUtility';
 
 import {
   Breadcrumb,
@@ -9,6 +10,7 @@ import {
   TabList,
   TabPanels,
   TabPanel,
+  Pagination,
 } from '@carbon/react';
 import {
   Loading,
@@ -30,32 +32,81 @@ import {
 import { Add, TrashCan, Replicate, Edit, Run } from '@carbon/react/icons';
 
 import CarbonTable from '../../components/CarbonTable/CarbonTable';
-import ApiUtility from '../../components/ApiUtility/ApiUtility'; // Import the utility class
 
 import '../../components/css/common.css'; // Import the CSS file for styling
 
 class WebhookPage extends Component {
-  constructor() {
-    super();
-    this.state = {
-      loading: false,
-      msg: null,
-      webhooks: null,
-      execution_result: null,
-    };
+  constructor(props) {
+    super(props);
     this.apiUtility = new ApiUtility();
+    this.state = {
+      loading: true,
+      execution_result: null,
+      template_columns: [],
+      msg: null,
+      webhooks: [],
+      currentPage: 1,
+      totalItems: 0,
+      itemsPerPage: 5,
+    };
   }
 
   componentDidMount() {
     this.handleLoad();
   }
 
+  handlePageChange = (data) => {
+    this.setState({ loading: true, currentPage: data.page }, () => {
+      this.handleLoad();
+    });
+  };
+
+  handleLoad = async () => {
+    console.log('Loading page:', this.state.currentPage);
+    
+    try {
+      const response = await fetch(`/api/webhook/list?page=${this.state.currentPage}&limit=${this.state.itemsPerPage}`);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (data && data.data) {
+        this.setState({
+          webhooks: data.data,
+          totalItems: data.total,
+          loading: false
+        });
+      } else {
+        console.error('Invalid response format:', data);
+        this.setState({ loading: false });
+      }
+    } catch (error) {
+      console.error('Load failed:', error);
+      this.setState({ loading: false });
+    }
+  };
+
+  getRequest = async (url) => {
+    try {
+      const response = await this.apiUtility.getRequest(url);
+      return response;
+    } catch (error) {
+      console.error('Error in getRequest:', error);
+      throw error;
+    }
+  };
+
   getWebhookDetailLink(id) {
     return '/webhookdetail?action=load&id=' + id;
   }
 
   handleNew = () => {
-    window.location.href = '/webhookdetail?action=new';
+    window.location.href = '/webhookdetail';
   };
 
   handleOpen = (id) => {
@@ -64,16 +115,6 @@ class WebhookPage extends Component {
 
   handleClone = (id) => {
     window.location.href = '/webhookdetail?action=clone&id=' + id;
-  };
-
-  handleLoad = () => {
-    this.postRequest(
-      '/api/webhook/loadall',
-      null,
-      null,
-      this.sucessCallBackLoad,
-      null
-    );
   };
 
   handleExecute = (id) => {
@@ -94,16 +135,6 @@ class WebhookPage extends Component {
       this.sucessCallBackDelete,
       id
     );
-  };
-
-  sucessCallBackLoad = (resp) => {
-    this.setState((prevData) => {
-      const newData = { ...prevData };
-      newData.webhooks = resp.data;
-      newData.msg = resp.msg;
-      newData.loading = false;
-      return newData;
-    });
   };
 
   sucessCallBackExecute = (resp) => {
@@ -127,25 +158,6 @@ class WebhookPage extends Component {
     });
   };
 
-  startLoading = () => {
-    this.setState((prevData) => {
-      const newData = { ...prevData };
-      newData.msg = null;
-      newData.execution_result = null;
-      newData.loading = true;
-      return newData;
-    });
-  };
-
-  stopLoading = (error) => {
-    console.log(error);
-    this.setState((prevData) => {
-      const newData = { ...prevData };
-      newData.loading = false;
-      return newData;
-    });
-  };
-
   postRequest = (url, startCallBack, errorCallBack, sucesssCallBack, id) => {
     var myPayload = { id: id };
     this.apiUtility.postRequest(
@@ -158,6 +170,8 @@ class WebhookPage extends Component {
   };
 
   render() {
+    const { loading, webhooks, currentPage, totalItems, itemsPerPage } = this.state;
+
     return (
       <Grid>
         <Column
@@ -185,85 +199,64 @@ class WebhookPage extends Component {
                   </div>
                 </div>
               </div>
-              <div>
-                {this.state.loading && (
-                  <div>
-                    <p>&nbsp;</p>
-                    <Loading description="Loading content..." />
-                  </div>
-                )}
-              </div>
-              <div className="upload-section">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableHeader>Id</TableHeader>
-                      <TableHeader>Name</TableHeader>
-                      <TableHeader>Desc</TableHeader>
-                      <TableHeader>Envizi Template Type</TableHeader>
-                      <TableHeader>Actions</TableHeader>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {this.state.webhooks &&
-                      this.state.webhooks.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell key={item.id}>
-                            <Link
-                              href={this.getWebhookDetailLink(item.id)}
-                              target="_self"
-                            >
-                              {item.id}
-                            </Link>
-                          </TableCell>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell>{item.desc}</TableCell>
-                          <TableCell>{item.type}</TableCell>
+
+              {loading ? (
+                <div>
+                  <p>&nbsp;</p>
+                  <Loading description="Loading content..." />
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableHeader>Id</TableHeader>
+                        <TableHeader>Name</TableHeader>
+                        <TableHeader>Description</TableHeader>
+                        <TableHeader>Type</TableHeader>
+                        <TableHeader>Actions</TableHeader>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {webhooks.map((webhook) => (
+                        <TableRow key={webhook.id}>
+                          <TableCell>{webhook.id}</TableCell>
+                          <TableCell>{webhook.name}</TableCell>
+                          <TableCell>{webhook.desc}</TableCell>
+                          <TableCell>{webhook.type}</TableCell>
                           <TableCell>
-                            {/* <Button
-                                    kind="secondary"
-                                    type="button"
-                                    className="fin-button-icon"
-                                    hasIconOnly
-                                    renderIcon={Run}
-                                    iconDescription="Run/Execute"
-                                    size="sm"
-                                    onClick={() =>
-                                      this.handleExecute(item.id)
-                                    }
-                                  />                                   */}
                             <Button
-                              className="fin-button-icon2"
-                              hasIconOnly
-                              renderIcon={Edit}
-                              iconDescription="Open"
+                              kind="ghost"
                               size="sm"
-                              onClick={() => this.handleOpen(item.id)}
-                            />
-                            <Button
-                              kind="secondary"
-                              className="fin-button-icon2"
-                              hasIconOnly
-                              renderIcon={Replicate}
-                              iconDescription="Clone/Copy"
-                              size="sm"
-                              onClick={() => this.handleClone(item.id)}
-                            />
-                            <Button
-                              kind="secondary"
-                              className="fin-button-icon2"
-                              hasIconOnly
-                              renderIcon={TrashCan}
-                              iconDescription="Delete"
-                              size="sm"
-                              onClick={() => this.handleDelete(item.id)}
-                            />
+                              onClick={() => {
+                                window.location.href = `/webhookdetail?id=${webhook.id}`;
+                              }}
+                            >
+                              Edit
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableBody>
+                  </Table>
+
+                  {webhooks.length > 0 && (
+                    <div style={{ margin: '1rem 0' }}>
+                      <Pagination
+                        backwardText="Previous page"
+                        forwardText="Next page"
+                        itemsPerPageText="Items per page:"
+                        page={currentPage}
+                        pageNumberText="Page Number"
+                        pageSize={itemsPerPage}
+                        pageSizes={[5]}
+                        totalItems={totalItems}
+                        onChange={this.handlePageChange}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </section>
           </div>
         </Column>
@@ -277,13 +270,6 @@ class WebhookPage extends Component {
                   Webhook Execution results
                 </div>
 
-                {/* <div className="upload-section">
-                  <div className="fin-row">
-                    <div className="fin-column">
-                      {JSON.stringify(this.state.execution_result)}
-                    </div>
-                  </div>
-                </div> */}
                 <div className="upload-section">
                   {this.state.execution_result && (
                     <CarbonTable

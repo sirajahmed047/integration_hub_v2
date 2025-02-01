@@ -1,0 +1,1 @@
+{"name": "test1", "desc": "test", "endpoint": "https://api.energidataservice.dk/dataset/ConsumptionCoverageLocationBased?limit=5", "mapping": [], "envizi_template": "POC", "id": "WH-20250131090955"}

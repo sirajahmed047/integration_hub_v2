@@ -24,6 +24,10 @@ from api.ApiLogin import apiLogin
 from api.ApiPush import apiPush
 
 from util.ConfigUtil import ConfigUtil
+from util.FileUtil import FileUtil
+from webhook.WebhookEnviziMapping import WebhookEnviziMapping
+
+from routes.webhook_routes import webhook_routes
 
 #### Logging Configuration
 logging.basicConfig(
@@ -35,6 +39,7 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
+app.register_blueprint(webhook_routes)
 # auth = HTTPBasicAuth()
 
 CORS(app)
@@ -86,6 +91,28 @@ def not_found(e):
 # def verify_password(username, password):
 #     if username in users and users[username] == password:
 #         return username
+
+@app.route('/api/transform-webhook', methods=['POST'])
+def transform_webhook():
+    try:
+        data = request.json
+        print("Received data:", data)
+        print("Webhook detail data:", data.get('webhook_detail_data', {}))
+
+        # Initialize dependencies
+        fileUtil = FileUtil()
+        configUtil = ConfigUtil()
+        
+        # Create WebhookEnviziMapping instance with required dependencies
+        webhook_mapping = WebhookEnviziMapping(fileUtil, configUtil)
+        
+        # Transform the data
+        result = webhook_mapping.map_webhook_data_to_envizi_format(data)
+        
+        return jsonify(result)
+    except Exception as e:
+        print("Mapping error:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 ### Main method
 def main():
