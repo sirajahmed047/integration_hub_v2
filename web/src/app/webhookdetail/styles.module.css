@@ -1,0 +1,132 @@
+.webhookMetrics {
+  margin: 2rem 0;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.metricValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.webhookHistory {
+  margin: 2rem 0;
+}
+
+.webhookStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.previewSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--cds-layer);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.previewSection h3 {
+  margin-bottom: 1rem;
+}
+
+.previewSection table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+.previewSection th,
+.previewSection td {
+  padding: 0.75rem;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.previewSection th {
+  background: var(--cds-layer-hover);
+  font-weight: 600;
+}
+
+.validationErrors {
+  margin-top: 1rem;
+  color: #da1e28;
+}
+
+.webhookDetail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--cds-layer);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.section h3 {
+  margin-bottom: 1rem;
+  color: var(--cds-text-primary);
+}
+
+.templateControls {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+/* Remove history-related styles */
+.webhookHistory,
+.webhookMetrics {
+  display: none;
+}
+
+/* Update input spacing */
+.section input,
+.section select {
+  margin-bottom: 1rem;
+}
+
+/* Make preview section more prominent */
+.previewSection {
+  margin-top: 1.5rem;
+  background: var(--cds-layer-hover);
+  padding: 1.5rem;
+  border-radius: 4px;
+}
+
+.validationError {
+  color: var(--cds-support-error);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--cds-support-error-background);
+  border-radius: 4px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  background: var(--cds-layer);
+  border-radius: 4px;
+}
+
+.emptyState h4 {
+  margin-bottom: 0.5rem;
+} 

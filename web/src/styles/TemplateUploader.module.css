@@ -1,0 +1,17 @@
+.template-section {
+  margin: 2rem 0;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.template-uploader {
+  margin-top: 1rem;
+}
+
+.template-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f4f4f4;
+  border-radius: 4px;
+} 

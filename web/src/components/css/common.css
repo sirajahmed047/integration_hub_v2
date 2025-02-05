@@ -5,13 +5,12 @@ body {
 }
 
 .HeaderClass {
-  background-color: #30323f;
-  /* background-color: blue; */
-  align-items: left;
-  padding: 15px !important;
-  height: 75px;
-  margin: 0px;
-  vertical-align: middle;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  background: var(--neutral-50);
+  box-shadow: var(--shadow-sm);
 }
 
 .ContainerClass {
@@ -59,15 +58,83 @@ body {
 
 .containerHeading {
   display: flex;
-  justify-content: flex-start; /* Aligns the divs from the left */
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  height: var(--header-height);
 }
 
 .boxHeading {
-  padding: 10px;
-  text-align: center;
-  /* border: 1px solid black; */
-  white-space: nowrap; /* Prevents text wrapping, keeps div width based on content */
-  color: rgb(255, 255, 255) !important;
+  display: flex;
+  align-items: center;
+}
+
+.logoSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.headerLogo {
+  height: 35px;
+  width: auto;
+  object-fit: contain;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--neutral-300);
+}
+
+.appTitle {
+  font-family: var(--font-family);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--tm-secondary);
+}
+
+.navigationMenu {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navButton {
+  padding: 0.5rem 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--neutral-600);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.navButton:hover {
+  color: var(--tm-primary);
+  background-color: var(--eco-blue-100);
+}
+
+.navButton.active {
+  color: var(--tm-primary);
+  background-color: var(--eco-blue-100);
+}
+
+@media (max-width: 768px) {
+  .containerHeading {
+    padding: 0.75rem 1rem;
+  }
+  
+  .navigationMenu {
+    gap: 0.25rem;
+  }
+  
+  .navButton {
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 .SubHeaderClass {

@@ -1,0 +1,86 @@
+@import './theme.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--neutral-50);
+  color: var(--neutral-900);
+  line-height: 1.5;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
+}
+
+.content-wrapper {
+  margin-top: var(--header-height);
+  min-height: calc(100vh - var(--header-height));
+  padding: 1rem var(--content-padding);
+}
+
+/* Carbon Design System Overrides */
+.cds--header {
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.cds--btn {
+  background-color: var(--tm-primary);
+}
+
+.cds--btn:hover {
+  background-color: var(--tm-secondary);
+}
+
+.cds--tab-content {
+  background: var(--neutral-50);
+  padding: var(--content-padding);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Carbon header fixes */
+.cds--header__name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Component specific styles */
+.webhook-preview {
+  margin-top: 1rem;
+  background: white;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.template-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: var(--border-radius);
+}
+
+.required {
+  color: #da1e28;
+  margin-left: 4px;
+}
+
+/* Table styles */
+.cds--data-table-container {
+  background: white;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+}
+
+/* Form styles */
+.cds--form-item {
+  margin-bottom: 1.5rem;
+} 

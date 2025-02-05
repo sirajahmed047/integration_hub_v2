@@ -1,0 +1,58 @@
+.header {
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+  height: var(--header-height);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: var(--shadow-sm);
+}
+
+.headerContent {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brandSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo {
+  height: 35px;
+  width: auto;
+  object-fit: contain;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--neutral-300);
+}
+
+.headerTitle {
+  font-family: var(--font-family);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--tm-secondary);
+}
+
+.navigation {
+  margin-left: auto;
+}
+
+/* Navigation styles */
+.headerContent :global(.cds--header__menu-item) {
+  color: var(--tm-secondary);
+}
+
+.headerContent :global(.cds--header__menu-item:hover) {
+  color: var(--tm-primary);
+} 

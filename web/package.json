@@ -27,15 +27,17 @@
     "eslint-config-next": "13.4.9",
     "flask": "^0.2.10",
     "i": "^0.3.7",
-    "next": "13.5.6",
+    "next": "^14.0.0",
     "pip": "^0.0.1",
-    "react": "^18",
+    "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-bootstrap": "^2.10.2",
-    "react-dom": "^18",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.5.1",
     "sass": "^1.69.0",
     "sharp": "^0.33.4",
-    "swc": "^1.0.11"
+    "swc": "^1.0.11",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@swc/cli": "^0.3.12",

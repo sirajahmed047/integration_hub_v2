@@ -1,0 +1,136 @@
+.landingPage {
+  background: linear-gradient(
+    135deg,
+    var(--eco-blue-100),
+    var(--eco-green-100)
+  );
+  min-height: calc(100vh - var(--header-height));
+  padding: var(--content-padding);
+}
+
+.welcomeSection {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.logo {
+  max-width: 240px;
+  height: auto;
+}
+
+.titleSection {
+  margin-bottom: 3rem;
+}
+
+.title {
+  font-family: var(--font-family);
+  font-size: 3.5rem;  /* Larger size for INDRA */
+  color: var(--tm-secondary);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: var(--font-size-xl);
+  color: var(--tm-accent);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  font-size: var(--font-size-lg);
+  color: var(--neutral-600);
+  font-weight: 400;
+}
+
+.archSection {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+}
+
+.archImage {
+  width: 100%;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+.archDescription {
+  text-align: left;
+  padding: 0 1rem;
+}
+
+.archDescription h3 {
+  color: var(--tm-secondary);
+  font-size: var(--font-size-xl);
+  margin-bottom: 1rem;
+}
+
+.archDescription p {
+  color: var(--neutral-600);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.archDescription ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.archDescription li {
+  color: var(--neutral-600);
+  margin-bottom: 0.5rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.archDescription li:before {
+  content: "•";
+  color: var(--tm-accent);
+  position: absolute;
+  left: 0;
+}
+
+.archDescription strong {
+  color: var(--tm-secondary);
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 4rem;
+}
+
+.featureCard {
+  background: var(--neutral-50);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-4px);
+}
+
+.featureIcon {
+  color: var(--tm-accent);
+  margin-bottom: 1rem;
+}
+
+.featureTitle {
+  font-size: var(--font-size-lg);
+  color: var(--tm-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.featureDescription {
+  color: var(--neutral-600);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+} 

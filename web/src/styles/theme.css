@@ -1,0 +1,41 @@
+:root {
+  /* Tech Mahindra Brand Colors */
+  --tm-primary: #00A4EF;      /* Tech Mahindra Blue */
+  --tm-secondary: #2B5797;    /* Deep Blue */
+  --tm-accent: #00B294;       /* Teal Green */
+  
+  /* Sustainability Colors */
+  --eco-green-100: #E8F5E9;
+  --eco-green-200: #C8E6C9;
+  --eco-green-500: #4CAF50;
+  --eco-blue-100: #E3F2FD;
+  --eco-blue-500: #2196F3;
+  
+  /* Neutral Colors */
+  --neutral-50: #FAFAFA;
+  --neutral-100: #F5F5F5;
+  --neutral-200: #EEEEEE;
+  --neutral-300: #E0E0E0;
+  --neutral-600: #757575;
+  --neutral-900: #212121;
+  
+  /* Layout */
+  --header-height: 3.5rem;
+  --max-width: 1440px;
+  --side-nav-width: 256px;
+  --content-padding: 1.5rem;
+  --border-radius: 8px;
+  
+  /* Typography */
+  --font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05);
+} 
