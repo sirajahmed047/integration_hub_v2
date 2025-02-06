@@ -6,12 +6,11 @@ import {
   Button,
 } from '@carbon/react';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
 
 class AppHeader extends Component {
   render() {
     return (
-      <div aria-label="My App" className="HeaderClass">
+      <div aria-label="Tech Mahindra INDRA" className="HeaderClass">
         <div className="containerHeading">
           <div className="logoSection">
             <Image 
@@ -26,24 +25,12 @@ class AppHeader extends Component {
             <span className="appTitle">INDRA</span>
           </div>
           <nav className="navigationMenu">
-            <Button className="navButton" href="/">
-              Home
-            </Button>
-            <Button className="navButton" href="/turbo">
-              Turbonomic
-            </Button>
-            <Button className="navButton" href="/excelpro">
-              Excel
-            </Button>
-            <Button className="navButton" href="/webhooks">
-              Webhook
-            </Button>
-            <Button className="navButton" href="/invoice">
-              Invoice
-            </Button>
-            <Button className="navButton" href="/config">
-              Config
-            </Button>
+            <Button className="navButton" href="/">Home</Button>
+            <Button className="navButton" href="/turbo">Turbonomic</Button>
+            <Button className="navButton" href="/excelpro">Excel</Button>
+            <Button className="navButton" href="/webhooks">Webhooks</Button>
+            <Button className="navButton" href="/invoice">Invoice</Button>
+            <Button className="navButton" href="/config">Config</Button>
           </nav>
         </div>
       </div>

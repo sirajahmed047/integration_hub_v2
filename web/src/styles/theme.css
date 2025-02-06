@@ -27,7 +27,7 @@
   --border-radius: 8px;
   
   /* Typography */
-  --font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family: 'Inter', 'Segoe UI', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
   --font-size-lg: 1.125rem;
