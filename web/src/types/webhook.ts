@@ -1,14 +1,64 @@
+export interface WebhookSetup {
+  basicConfig: {
+    name: string;
+    endpoint: string;
+    method: string;
+    headers?: Record<string, string>;
+  };
+  template: {
+    id?: string;
+    file?: File;
+    name?: string;
+  };
+  envizi?: {
+    apiKey: string;
+    endpoint: string;
+    organizationId: string;
+  };
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: Array<{
+    field: string;
+    message: string;
+    severity: 'error' | 'warning';
+    resolution?: string;
+  }>;
+}
+
+export interface ExecutionResult {
+  success: boolean;
+  recordsProcessed: number;
+  timestamp: Date;
+  errors?: string[];
+}
+
+export interface WebhookStatus {
+  status: 'active' | 'inactive' | 'error';
+  lastExecution?: ExecutionResult;
+  nextScheduledRun?: Date;
+  metrics: {
+    totalExecutions: number;
+    successRate: number;
+    averageProcessingTime: number;
+  };
+}
+
+export interface TransformationType {
+  type: 'direct' | 'math' | 'date' | 'text';
+  operation?: string;
+  format?: string;
+}
+
 export interface TemplateMapping {
   enviziField: string;
   sourcePath: string;
   required?: boolean;
   isArray?: boolean;
   manualValue?: string;
-  transformation?: {
-    type: 'direct' | 'math' | 'date' | 'text';
-    operation?: string;
-    format?: string;
-  }
+  transformation?: TransformationType;
+  confidence?: number;
 }
 
 export interface WebhookConfig {
@@ -16,24 +66,24 @@ export interface WebhookConfig {
   name: string;
   desc: string;
   endpoint: string;
-  method?: string;
-  headers?: Record<string, string>;
-  data?: any;
+  method: string;
+  envizi_template: string;
   mapping: TemplateMapping[];
-  envizi_template: EnviziTemplateType;
-  isTestMode?: boolean;
-  scheduler?: {
+  scheduler: {
     enabled: boolean;
     interval: number;
     lastRun?: string;
     nextRun?: string;
   };
+  uploadedFile?: File;
+  headers?: Record<string, string>;
+  data?: any;
+  isTestMode?: boolean;
   envizi?: {
     apiKey: string;
     endpoint: string;
     organizationId: string;
   };
-  data_template_type?: string;
 }
 
 export type EnviziFieldType = 'string' | 'number' | 'date';
@@ -45,45 +95,17 @@ export interface EnviziTemplate {
   description?: string;
 }
 
+export interface EnviziTemplates {
+  [key: string]: EnviziTemplate;
+}
+
 export interface EnviziTemplateStore {
   templates: Record<string, EnviziTemplate>;
   addTemplate: (template: EnviziTemplate) => void;
   getTemplate: (name: string) => EnviziTemplate | undefined;
 }
 
-export const ENVIZI_TEMPLATES: Record<string, EnviziTemplate> = {
-  'POC': {
-    name: 'POC',
-    fields: [
-      { name: "Organization", required: true, type: 'string' },
-      { name: "Location", required: true, type: 'string' },
-      { name: "Account Style Caption", required: true, type: 'string' },
-      { name: "Start Date", required: true, type: 'date' },
-      { name: "End Date", required: true, type: 'date' },
-      { name: "Usage Amount", required: false, type: 'number' },
-      { name: "Cost Amount", required: false, type: 'number' }
-    ]
-  }
-};
-
-export type EnviziTemplateType = 'POC' | string;
-
-export function validateTransformedData(
-  data: any[], 
-  mappings: TemplateMapping[],
-  templateType: EnviziTemplateType
-): string[] {
-  const errors: string[] = [];
-  const template = ENVIZI_TEMPLATES[templateType];
-  return errors;
-}
-
-export interface TemplateRow {
-  'Field Name': string;
-  'Data Type'?: string;
-  'Required'?: string;
-  'Validation'?: string;
-}
+export type EnviziTemplateType = string;
 
 export interface EnviziField {
   name: string;
@@ -111,23 +133,41 @@ export const TRANSFORMATION_TEMPLATES = {
   }
 };
 
-export const templateStore: EnviziTemplateStore = {
-  templates: { ...ENVIZI_TEMPLATES },
-  
-  addTemplate(template: EnviziTemplate) {
-    this.templates[template.name] = template;
-  },
-  
-  getTemplate(name: string) {
-    return this.templates[name];
-  }
-};
-
 export interface TestResult {
   success: boolean;
+  error?: string;
   originalData: any;
   records: any[];
   transformedData: any[];
   validationErrors: string[];
-  data?: any[];
+  mappings?: MappingResult[];
+}
+
+export interface WebhookResponse {
+  success: boolean;
+  originalData: any;
+  records: any[];
+  mappings: TemplateMapping[];
+  transformedData: any[];
+  validationErrors: string[];
+}
+
+interface MappingResult {
+  sourceField: string;
+  targetField: string;
+  transformation: TransformationType;
+  confidence: number;
+  value: any;
+}
+
+export class WebhookError extends Error {
+  constructor(
+    message: string,
+    public step: 'config' | 'mapping' | 'transform' | 'execute',
+    public severity: 'error' | 'warning',
+    public resolution?: string
+  ) {
+    super(message);
+    this.name = 'WebhookError';
+  }
 } 

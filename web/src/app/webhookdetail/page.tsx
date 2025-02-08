@@ -6,8 +6,7 @@ import {
   WebhookConfig, 
   TemplateMapping, 
   EnviziTemplate,
-  EnviziField,
-  EnviziTemplateType
+  EnviziField
 } from '../../types/webhook';
 import {
   TextInput,
@@ -25,21 +24,29 @@ import {
   Tab,
   TabPanels,
   TabPanel,
-  InlineLoading
+  InlineLoading,
+  DataTable,
+  Table,
+  TableHead,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell
 } from '@carbon/react';
-import  ApiUtility from '../../components/ApiUtility/ApiUtility';
+import { toast } from 'react-hot-toast';
+import { TemplateService } from '../../services/TemplateService';
+import styles from './styles.module.css';
+
+// Regular imports instead of dynamic imports to avoid type issues
+import ApiUtility from '../../components/ApiUtility/ApiUtility';
 import { WebhookPreview } from '../../components/WebhookPreview';
-import { WebhookTemplateUtility } from '../../utils/WebhookTemplateUtility';
 import { WebhookError } from '../../components/WebhookError';
 import { WebhookScheduler } from '../../components/WebhookScheduler';
 import { WebhookStatusBadge } from '../../components/WebhookStatusBadge';
 import { WebhookMetrics } from '../../components/WebhookMetrics';
-import styles from './styles.module.css';
 import { WebhookHistory } from '../../components/WebhookHistory';
 import { TemplateUploader } from '../../components/TemplateUploader';
-import { templateStore } from '../../types/webhook';
 import { ValidationResults } from '../../components/ValidationResults';
-import { toast } from 'react-hot-toast';
 
 interface WebhookMetrics {
   totalExecutions: number;
@@ -51,19 +58,41 @@ interface WebhookMetrics {
   averageExecutionTime?: number;
 }
 
+interface MappingSuggestion {
+  sourceField: string;
+  targetField: string;
+  transformation?: any;
+  confidence: number;
+  value: any;
+}
+
 interface TestResult {
   success: boolean;
   originalData: any;
   records: any[];
   transformedData: any[];
   validationErrors: string[];
+  mappings?: MappingSuggestion[];
+}
+
+interface TemplateField {
+  name: string;
+  required: boolean;
+  type: string;
+}
+
+interface Template {
+  name: string;
+  fields: TemplateField[];
+  version: string;
+  description: string;
 }
 
 interface Props {
   config: WebhookConfig | null;
   availableTemplates: string[];
   handleTemplateChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  handleTemplateUpload: (template: EnviziTemplate) => void;
+  handleTemplateUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleTemplatePreview: () => void;
 }
 
@@ -74,12 +103,7 @@ interface DataPreviewProps {
 }
 
 interface WebhookState {
-  testResult: {
-    originalData: any;
-    success: boolean;
-    data: any[];
-    validationErrors: string[];
-  } | null;
+  testResult: TestResult | null;
   webhookRecords: any[];
   loading: boolean;
   error: any;
@@ -89,14 +113,18 @@ interface WebhookState {
   validationErrors: string[];
 }
 
+interface ErrorState {
+  type: 'api' | 'validation' | 'transformation' | 'template';
+  message: string;
+}
+
 export default function WebhookDetail() {
   const [config, setConfig] = useState<WebhookConfig | null>({
     name: '',
     desc: '',
     endpoint: process.env.NEXT_PUBLIC_WEBHOOK_DEFAULT_ENDPOINT || '',
     method: 'GET',
-    envizi_template: 'POC',
-    data_template_type: '1-single',
+    envizi_template: '',
     headers: {},
     envizi: {
       apiKey: '',
@@ -106,28 +134,23 @@ export default function WebhookDetail() {
     mapping: [],
     scheduler: {
       enabled: false,
-      interval: 60
+      interval: 5
     }
   });
   const [loading, setLoading] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [mappings, setMappings] = useState<any[]>([]);
-  const [enviziTemplates] = useState<EnviziTemplateType[]>(['POC']);
   const webhookService = new WebhookService(process.env.NEXT_PUBLIC_API_URL || '');
+  const templateService = new TemplateService(process.env.NEXT_PUBLIC_API_URL || '');
   const apiUtility = new ApiUtility();
   const [webhookRecords, setWebhookRecords] = useState<any[]>([]);
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
   const [schedulerInterval, setSchedulerInterval] = useState(60); // 60 minutes default
-  const [error, setError] = useState<{
-    type: 'api' | 'validation' | 'transformation';
-    message: string;
-  } | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
   const [metrics, setMetrics] = useState<WebhookMetrics | null>(null);
   const [status, setStatus] = useState<'active' | 'inactive' | 'error' | 'running' | 'success'>('inactive');
   const [historyEntries, setHistoryEntries] = useState([]);
-  const [availableTemplates, setAvailableTemplates] = useState<string[]>(
-    Object.keys(templateStore.templates)
-  );
+  const [availableTemplates, setAvailableTemplates] = useState<string[]>([]);
 
   const [state, setState] = useState<WebhookState>({
     testResult: null,
@@ -161,8 +184,7 @@ export default function WebhookDetail() {
         desc: '',
         endpoint: process.env.NEXT_PUBLIC_WEBHOOK_DEFAULT_ENDPOINT || '',
         method: 'GET',
-        envizi_template: 'POC',
-        data_template_type: '1-single',
+        envizi_template: '',
         headers: {},
         envizi: {
           apiKey: '',
@@ -172,7 +194,7 @@ export default function WebhookDetail() {
         mapping: [], // Will be populated with TemplateMapping objects
         scheduler: {
           enabled: false,
-          interval: 60
+          interval: 5
         }
       });
     }
@@ -197,6 +219,19 @@ export default function WebhookDetail() {
     }
   }, [config?.id]);
 
+  useEffect(() => {
+    // Load available templates
+    const loadTemplates = async () => {
+      try {
+        const templates = await templateService.getTemplates();
+        setAvailableTemplates(templates.map(t => t.name));
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+      }
+    };
+    loadTemplates();
+  }, []);
+
   const loadConfig = async (id: string) => {
     setLoading(true);
     try {
@@ -212,9 +247,12 @@ export default function WebhookDetail() {
       const configData = await configResponse.json();
       
       if (configData && configData.data) {
-        // Initialize with template fields if none exist
-        if (!configData.data.fields || configData.data.fields.length === 0) {
-          configData.data.fields = WebhookTemplateUtility.createEmptyFields();
+        // If no template is uploaded, we can't proceed with field mapping
+        if (!configData.data.envizi_template) {
+          setError({
+            type: 'template',
+            message: 'Please upload an Envizi template to proceed with field mapping'
+          });
         }
         
         setConfig(configData.data);
@@ -226,6 +264,10 @@ export default function WebhookDetail() {
       }
     } catch (error) {
       console.error('Failed to load webhook config:', error);
+      setError({
+        type: 'api',
+        message: 'Failed to load webhook configuration'
+      });
     } finally {
       setLoading(false);
     }
@@ -239,7 +281,7 @@ export default function WebhookDetail() {
       const webhookData = {
         ...config,
         mapping: mappings,
-        envizi_template: config.envizi_template || 'POC',  // Ensure this is set
+        envizi_template: config.envizi_template,  // Must be selected by user
         scheduler: config.scheduler
       };
       
@@ -263,88 +305,187 @@ export default function WebhookDetail() {
     }
   };
 
-  const handleTest = async () => {
-    if (!config) return;
+  const extractRecordsFromResponse = (originalData: any): any[] => {
+    // Direct check for records array in the response
+    if (originalData && Array.isArray(originalData.records)) {
+      return originalData.records;
+    }
     
-    setLoading(true);
-    setError(null);
+    // If it's already an array, return it
+    if (Array.isArray(originalData)) {
+      return originalData;
+    }
     
-    try {
-      const result = await webhookService.testWebhook(config);
-      console.log('Test result:', result); // Debug log
-      
-      setTestResult(result);
-      setWebhookRecords(result.records);
-      
-      // Show preview after successful test
-      if (result.transformedData?.length > 0) {
-        setShowPreview(true);
+    // If it's an object, look for arrays in its properties
+    if (originalData && typeof originalData === 'object') {
+      // Check for records property first
+      if (originalData.records) {
+        return originalData.records;
       }
-    } catch (error: any) {
+      
+      // Check for nested structures
+      if (originalData.data?.records) {
+        return originalData.data.records;
+      }
+      
+      if (originalData.data?.webhook_execute_response?.records) {
+        return originalData.data.webhook_execute_response.records;
+      }
+    }
+    
+    // If no records found, return empty array
+    return [];
+  };
+
+  const testWebhook = async (config: WebhookConfig) => {
+    const response = await webhookService.executeWithRetry({
+      ...config,
+      isTestMode: true
+    });
+    
+    if (!response || !response.data) {
+      throw new Error('No data received from webhook endpoint');
+    }
+    
+    return response.data;
+  };
+
+  const generateMappings = (records: any[], template: any): MappingSuggestion[] => {
+    console.log('generateMappings input:', { records, template });
+    
+    if (!records.length || !template) {
+      console.log('No records or template provided');
+      return [];
+    }
+    
+    const suggestions = webhookService.mappingService.suggestMappings(records[0], template)
+      .map(mapping => {
+        const suggestion = {
+          sourceField: mapping.sourcePath,
+          targetField: mapping.enviziField,
+          transformation: mapping.transformation,
+          confidence: mapping.confidence || 0,
+          value: records[0]?.[mapping.sourcePath] || null
+        };
+        console.log('Generated mapping suggestion:', suggestion);
+        return suggestion;
+      });
+    
+    console.log('Final mapping suggestions:', suggestions);
+    return suggestions;
+  };
+
+  const handleTest = async (config: WebhookConfig) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Step 1: Test webhook and get response
+      console.log('Testing webhook with config:', config);
+      const webhookResponse = await testWebhook(config);
+      console.log('Webhook response:', webhookResponse);
+      
+      const records = extractRecordsFromResponse(webhookResponse);
+      console.log('Extracted records:', records);
+      
+      if (!records || records.length === 0) {
+        throw new Error('No records found in webhook response');
+      }
+      
+      // Step 2: Fetch template
+      console.log('Fetching template:', config.envizi_template);
+      const templateResponse = await fetch(`/api/webhook/templates/${config.envizi_template}`);
+      const templateData = await templateResponse.json();
+      console.log('Template data:', templateData);
+      
+      if (!templateResponse.ok || !templateData.success) {
+        throw new Error(templateData.error || 'Failed to fetch template');
+      }
+      
+      const template = templateData.template;
+      
+      // Step 3: Generate mappings
+      console.log('Generating mappings with template:', template);
+      const mappings = generateMappings(records, template);
+      console.log('Generated mappings:', mappings);
+      
+      // Step 4: Transform the data
+      console.log('Starting data transformation');
+      const transformedData = records.map(record => {
+        const transformedRecord: Record<string, any> = {};
+        template.fields.forEach((field: EnviziField) => {
+          const mapping = mappings.find(m => m.targetField === field.name);
+          console.log(`Processing field ${field.name}:`, {
+            mapping,
+            sourceValue: mapping ? record[mapping.sourceField] : undefined
+          });
+          if (mapping) {
+            transformedRecord[field.name] = record[mapping.sourceField] || '';
+          }
+        });
+        return transformedRecord;
+      });
+      console.log('Transformed data:', transformedData);
+      
+      // Set test result with transformed data
+      setTestResult({
+        success: true,
+        originalData: webhookResponse,
+        records: records,
+        transformedData: transformedData,
+        validationErrors: [],
+        mappings: mappings
+      });
+      
+      // Update the mappings state
+      const updatedMappings = mappings.map(m => ({
+        enviziField: m.targetField,
+        sourcePath: m.sourceField,
+        required: template.fields.find((f: TemplateField) => f.name === m.targetField)?.required || false,
+        transformation: m.transformation
+      }));
+      console.log('Updated mappings:', updatedMappings);
+      setMappings(updatedMappings);
+      
+    } catch (error) {
+      console.error('Test failed:', error);
       setError({
         type: 'api',
-        message: error.message || 'Failed to test webhook'
+        message: error instanceof Error ? error.message : 'Failed to test webhook'
       });
+      setTestResult(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleExecute = async () => {
-    setLoading(true);
-    setError(null);
+    if (!config || !testResult?.transformedData) return;
     
+    setLoading(true);
     try {
-      // Validate before execution
-      if (!config?.envizi?.endpoint || !config?.envizi?.apiKey) {
-        throw new Error('Missing Envizi configuration');
-      }
-
-      // Execute webhook
-      const result = await webhookService.executeWebhook({
-        ...config!,
-        isTestMode: false
+      // Final validation before sending to Envizi
+      const response = await fetch('/api/webhook/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: testResult.transformedData,
+          enviziConfig: config.envizi
+        })
       });
-
-      // Transform data
-      const transformedResult = await webhookService.transformData(
-        config!,
-        result.originalData
-      );
-
-      if (transformedResult.validationErrors.length > 0) {
-        setError({
-          type: 'validation',
-          message: `Validation errors: ${transformedResult.validationErrors.join(', ')}`
-        });
-        return;
+      
+      if (!response.ok) {
+        throw new Error('Failed to send data to Envizi');
       }
-
-      // Send to Envizi
-      await webhookService.sendToEnvizi(
-        transformedResult.data,
-        config!.envizi
-      );
-
-      // Update status
-      setStatus('success');
-      setMetrics((prev: WebhookMetrics | null) => ({
-        totalExecutions: (prev?.totalExecutions || 0) + 1,
-        successfulExecutions: (prev?.successfulExecutions || 0) + 1,
-        failedExecutions: prev?.failedExecutions || 0,
-        totalRecordsProcessed: prev?.totalRecordsProcessed || 0,
-        lastExecutionTime: new Date().toISOString(),
-        lastRunStatus: 'success',
-        averageExecutionTime: prev?.averageExecutionTime || 0
-      }));
-
+      
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Data sent to Envizi successfully');
+      }
     } catch (error) {
-      console.error('Execution failed:', error);
-      setError({
-        type: 'api',
-        message: error instanceof Error ? error.message : 'Execution failed'
-      });
-      setStatus('error');
+      toast.error('Failed to send data to Envizi');
     } finally {
       setLoading(false);
     }
@@ -364,20 +505,16 @@ export default function WebhookDetail() {
     setLoading(true);
     try {
       const transformedResult = await webhookService.transformData(
-        {
-          ...config,
-          mapping: state.mappings
-        },
-        state.testResult.originalData
+        state.testResult.originalData,
+        state.mappings,
+        config.envizi_template
       );
 
-      if (transformedResult.success) {
-        setState(prev => ({
-          ...prev,
-          transformedData: transformedResult.data || null,
-          validationErrors: transformedResult.validationErrors
-        }));
-      }
+      setState(prev => ({
+        ...prev,
+        transformedData: transformedResult.transformedData || null,
+        validationErrors: transformedResult.validationErrors
+      }));
     } catch (error) {
       console.error('Transformation failed:', error);
       setError({
@@ -390,40 +527,31 @@ export default function WebhookDetail() {
   };
 
   const handleApplyMapping = async (mappings: any[]) => {
-    console.log('Auto-applying mappings');
+    if (!state.testResult?.originalData) return;
     
-    if (!state.testResult?.originalData) {
-        console.error('No data to transform');
-        return;
-    }
-    
-    // Transform the data automatically
     try {
-        const dataToTransform = state.testResult.originalData?.data?.webhook_execute_response?.records;
-        console.log('Data to transform:', dataToTransform);
+      const dataToTransform = state.testResult.originalData?.data?.webhook_execute_response?.records;
+      if (!dataToTransform) {
+        console.error('No records found in webhook response');
+        return;
+      }
 
-        if (!dataToTransform) {
-            console.error('No records found in webhook response');
-            return;
+      const transformedResult = await webhookService.transformData(
+        dataToTransform,           // records array
+        config!.mapping,           // mappings
+        config!.envizi_template    // template type
+      );
+
+      setState(prev => ({
+        ...prev,
+        testResult: {
+          ...prev.testResult!,
+          transformedData: transformedResult.transformedData || null,
+          validationErrors: transformedResult.validationErrors
         }
-
-        // Auto-map the data based on field names
-        const transformedResult = await webhookService.transformData(
-            config!,
-            dataToTransform
-        );
-
-        setState(prev => ({
-            ...prev,
-            testResult: {
-                ...prev.testResult!,
-                transformedData: transformedResult.data || null,
-                validationErrors: transformedResult.validationErrors
-            }
-        }));
-
+      }));
     } catch (error) {
-        console.error('Error transforming data:', error);
+      console.error('Error transforming data:', error);
     }
   };
 
@@ -448,36 +576,68 @@ export default function WebhookDetail() {
     }
   };
 
-  const handleTemplateUpload = (template: EnviziTemplate) => {
-    // Add template to store
-    templateStore.addTemplate(template);
+  const handleTemplateUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.[0]) return;
     
-    // Update available templates
-    setAvailableTemplates(Object.keys(templateStore.templates));
+    const file = event.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
     
-    // Optionally switch to new template
-    setConfig(prev => ({
-      ...prev!,
-      envizi_template: template.name
-    }));
+    try {
+      const response = await fetch('/api/webhook/parse-template', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to parse template');
+      }
+      
+      const result = await response.json();
+      if (result.success) {
+        // Update config with template fields and mappings
+        setConfig(prev => ({
+          ...prev!,
+          uploadedFile: file,
+          envizi_template: result.templateName,
+          mapping: result.fields.map((field: any) => ({
+            enviziField: field.name,
+            sourcePath: field.name, // Default to same field name
+            required: field.required,
+            transformation: {
+              type: 'direct'
+            }
+          }))
+        }));
+
+        // Set initial test result with sample data
+        setTestResult({
+          success: true,
+          originalData: result.sampleData,
+          records: result.sampleData,
+          transformedData: [],
+          validationErrors: []
+        });
+
+        toast.success('Template parsed successfully');
+      } else {
+        throw new Error(result.error || 'Failed to parse template');
+      }
+    } catch (error) {
+      console.error('Template upload error:', error);
+      toast.error('Failed to parse template');
+    }
   };
 
   const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setConfig(prev => ({
       ...prev!,
-      envizi_template: e.target.value as EnviziTemplateType
+      envizi_template: e.target.value
     }));
   };
 
   const handleTemplatePreview = () => {
     // Implementation of handleTemplatePreview
-  };
-
-  const extractRecordsFromResponse = (originalData: any): any[] => {
-    if (originalData && originalData.data && originalData.data.webhook_execute_response) {
-      return originalData.data.webhook_execute_response.records || [];
-    }
-    return [];
   };
 
   const ProgressIndicator = () => (
@@ -532,9 +692,10 @@ export default function WebhookDetail() {
       <section className={styles.section}>
         <h3>Template Configuration</h3>
         <div className={styles.templateControls}>
-          <TemplateUploader 
-            onTemplateLoad={handleTemplateUpload}
-            currentTemplate={config?.envizi_template}
+          <input
+            type="file"
+            accept=".csv,.xlsx"
+            onChange={handleTemplateUpload}
           />
           {config?.envizi_template && (
             <Button 
@@ -551,7 +712,7 @@ export default function WebhookDetail() {
       <section className={styles.section}>
         <h3>Test and Preview</h3>
         <div className={styles.controls}>
-          <Button onClick={handleTest}>
+          <Button onClick={() => handleTest(config!)}>
             Test Webhook
           </Button>
         </div>
@@ -623,9 +784,10 @@ const TemplateSection: React.FC<Props> = ({
         ))}
       </Select>
       
-      <TemplateUploader 
-        onTemplateLoad={handleTemplateUpload}
-        currentTemplate={config?.envizi_template}
+      <input
+        type="file"
+        accept=".csv,.xlsx"
+        onChange={handleTemplateUpload}
       />
       
       <Button 
@@ -639,90 +801,87 @@ const TemplateSection: React.FC<Props> = ({
   </div>
 );
 
-const DataPreviewSection: React.FC<DataPreviewProps> = ({ loading, testResult, config }) => {
-  const [previewData, setPreviewData] = useState(testResult?.transformedData || []);
-  const [sending, setSending] = useState(false);
-  const webhookService = new WebhookService();
+const DataPreviewSection: React.FC<DataPreviewProps> = React.memo(({ loading, testResult, config }) => {
+  const [previewData, setPreviewData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (testResult?.transformedData) {
-      setPreviewData(testResult.transformedData);
-    }
-  }, [testResult]);
-
-  const handleMappedDataChange = (newData: any[]) => {
-    setPreviewData(newData);
-  };
-
-  const handleSendToEnvizi = async () => {
-    if (!config?.envizi || !previewData.length) return;
+    if (!testResult?.records) return;
     
-    setSending(true);
-    try {
-      await webhookService.sendToEnvizi(previewData, config.envizi);
-      // Show success message
-      toast.success('Data sent to Envizi successfully');
-    } catch (error) {
-      console.error('Failed to send to Envizi:', error);
-      toast.error('Failed to send data to Envizi');
-    } finally {
-      setSending(false);
-    }
-  };
+    const dataWithIds = testResult.records.map((record, index) => ({
+      id: String(index),
+      ...record
+    }));
+    setPreviewData(dataWithIds);
+  }, [testResult?.records]);
+
+  if (loading) {
+    return <Loading description="Loading preview..." />;
+  }
+
+  if (!previewData || previewData.length === 0) {
+    return <EmptyStateMessage 
+      title="No data to preview" 
+      subtitle="Test the webhook to preview data" 
+    />;
+  }
+
+  const headers = Object.keys(previewData[0])
+    .filter(key => key !== 'id')
+    .map(key => ({
+      key,
+      header: key
+    }));
 
   return (
     <div className={styles.previewSection}>
-      <h3>Data Preview</h3>
-      {loading ? (
-        <Loading description="Loading preview..." />
-      ) : (testResult?.records ?? []).length > 0 ? (
-        <>
-          <Tabs>
-            <TabList aria-label="Data Preview Tabs">
-              <Tab>Raw Data</Tab>
-              <Tab>Mapped Data</Tab>
-              <Tab>Validation</Tab>
-            </TabList>
-            <TabPanels>
-              <TabPanel>
-                <WebhookPreview
-                  data={testResult!.originalData}
-                  mappings={[]}
-                  templateType={config?.envizi_template || 'POC'}
-                />
-              </TabPanel>
-              <TabPanel>
-                <WebhookPreview
-                  data={previewData}
-                  mappings={config?.mapping || []}
-                  templateType={config?.envizi_template || 'POC'}
-                  onDataChange={handleMappedDataChange}
-                />
-              </TabPanel>
-              <TabPanel>
-                <ValidationResults errors={testResult!.validationErrors} />
-              </TabPanel>
-            </TabPanels>
-          </Tabs>
-          {previewData.length > 0 && config?.envizi && (
-            <Button
-              className={styles.sendButton}
-              onClick={handleSendToEnvizi}
-              disabled={sending}
-            >
-              {sending ? 'Sending...' : 'Send to Envizi'}
-            </Button>
-          )}
-        </>
-      ) : (
-        <EmptyStateMessage
-          title="No data to preview"
-          subtitle="Click 'Test Webhook' to fetch data"
-        />
-      )}
+      <Tabs>
+        <TabList aria-label="Data Preview Tabs">
+          <Tab>Raw Data</Tab>
+          <Tab>Mapped Data</Tab>
+          <Tab>Validation</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel>
+            <div className={styles.tableContainer}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {headers.map((header) => (
+                      <TableHeader key={header.key}>{header.header}</TableHeader>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {previewData.map((row) => (
+                    <TableRow key={row.id}>
+                      {headers.map((header) => (
+                        <TableCell key={`${row.id}-${header.key}`}>
+                          {row[header.key]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabPanel>
+          <TabPanel>
+            <WebhookPreview 
+              data={testResult?.transformedData || []}
+              mappings={config?.mapping || []}
+              templateType={config?.envizi_template || ''}
+            />
+          </TabPanel>
+          <TabPanel>
+            <ValidationResults 
+              errors={testResult?.validationErrors || []}
+            />
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </div>
   );
-};
+});
 
 // Replace EmptyState usage with custom component
 const EmptyStateMessage = ({ title, subtitle }: { title: string; subtitle: string }) => (

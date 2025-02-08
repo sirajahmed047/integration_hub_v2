@@ -1,102 +1,94 @@
 import React from 'react';
-import { FileUploader, Button } from '@carbon/react';
+import { FileUploader } from '@carbon/react';
 import * as XLSX from 'xlsx';
-import { EnviziTemplate, EnviziField, EnviziFieldType } from '../types/webhook';
-import { determineFieldType, extractValidation } from '../utils/templateParser';
+import { EnviziTemplate, EnviziField } from '../types/webhook';
+import { TemplateService } from '../services/TemplateService';
+import { toast } from 'react-hot-toast';
 
 interface TemplateUploaderProps {
   onTemplateLoad: (template: EnviziTemplate) => void;
-  currentTemplate?: string;
 }
 
 interface TemplateRow {
-  'Field Name': string;
-  'Data Type': string;
-  'Required': string;
-  'Validation': string;
+  [key: string]: string | number | boolean | null;
 }
 
-export function TemplateUploader({ onTemplateLoad }: TemplateUploaderProps) {
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+export const TemplateUploader: React.FC<TemplateUploaderProps> = ({ onTemplateLoad }) => {
+  const templateService = new TemplateService();
 
-    try {
-      const workbook = await readExcelFile(file);
-      const template = parseEnviziTemplate(workbook);
-      onTemplateLoad(template);
-    } catch (error) {
-      console.error('Template parsing failed:', error);
-    }
-  };
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
 
-  const readExcelFile = (file: File): Promise<XLSX.WorkBook> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          resolve(workbook);
-        } catch (error) {
-          reject(error);
+    const file = files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<TemplateRow>(firstSheet);
+
+        if (rows.length === 0) {
+          throw new Error('Template file is empty');
         }
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  };
 
-  const parseEnviziTemplate = (workbook: XLSX.WorkBook): EnviziTemplate => {
-    try {
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
-      
-      if (!data || data.length === 0) {
-        throw new Error('Empty template file');
+        const sampleRow = rows[0] as TemplateRow;
+        
+        // Validate that we have a valid object with keys
+        if (!sampleRow || typeof sampleRow !== 'object') {
+          throw new Error('Invalid template format: First row must contain column headers');
+        }
+
+        const fields: EnviziField[] = Object.keys(sampleRow).map(fieldName => {
+          const value = sampleRow[fieldName];
+          return {
+            name: fieldName,
+            type: templateService.determineFieldType(fieldName, value),
+            required: false,
+            validation: templateService.extractValidation(undefined)
+          };
+        });
+
+        if (fields.length === 0) {
+          throw new Error('No fields found in template');
+        }
+
+        const template: EnviziTemplate = {
+          name: file.name.split('.')[0],
+          fields,
+          version: '1.0',
+          description: `Template parsed from ${file.name}`
+        };
+
+        onTemplateLoad(template);
+        toast.success('Template loaded successfully');
+      } catch (error) {
+        console.error('Error parsing template:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to parse template');
       }
+    };
 
-      // Get headers from first row
-      const headers = data[0];
-      if (!headers || !Array.isArray(headers)) {
-        throw new Error('Invalid template format: missing headers');
-      }
+    reader.onerror = () => {
+      toast.error('Failed to read template file');
+    };
 
-      // Create fields from headers
-      const fields: EnviziField[] = headers
-        .filter((header): header is string => typeof header === 'string' && header.trim() !== '')
-        .map(header => ({
-          name: header.trim(),
-          type: 'string', // Default to string type
-          required: false, // Default to not required
-          validation: undefined
-        }));
-
-      if (fields.length === 0) {
-        throw new Error('No valid fields found in template');
-      }
-
-      console.log('Parsed fields:', fields); // Debug log
-
-      return {
-        name: workbook.SheetNames[0],
-        fields,
-        version: '1.0'
-      };
-    } catch (error) {
-      console.error('Template parsing error:', error);
-      throw new Error(`Failed to parse template: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    reader.readAsArrayBuffer(file);
   };
 
   return (
     <div className="template-uploader">
       <FileUploader
-        accept={['.xlsx', '.xls']}
-        buttonLabel="Upload Template"
+        accept={['.xlsx', '.csv']}
+        buttonLabel="Upload template"
         filenameStatus="edit"
-        labelDescription="Only Excel files (.xlsx, .xls) are supported"
-        onChange={handleFileUpload}
+        iconDescription="Clear file"
+        labelDescription="Only .xlsx or .csv files are accepted"
+        labelTitle="Upload Template"
+        multiple={false}
+        onChange={handleUpload}
+        size="md"
       />
     </div>
   );
-} 
+}; 

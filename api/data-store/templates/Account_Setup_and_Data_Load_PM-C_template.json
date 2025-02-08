@@ -1,0 +1,112 @@
+{
+  "name": "Account_Setup_and_Data_Load_PM-C_template",
+  "fields": [
+    {
+      "name": "Organization Link",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Organization",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Location",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Location Ref",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Account Style Link",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Account Style Caption",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Account Subtype",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Account Number",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "Account Reference",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Account Supplier",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Account Reader",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Start YYYY-MM-DD",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record End YYYY-MM-DD",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Data Quality",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Billing Type",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Subtype",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Entry Method",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Reference",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "Record Invoice Number",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "Quantity",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "Total Cost",
+      "type": "string",
+      "required": false
+    }
+  ],
+  "version": "1.0",
+  "description": "Template parsed from Account_Setup_and_Data_Load_PM-C_template.xlsx"
+}

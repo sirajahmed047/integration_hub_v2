@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

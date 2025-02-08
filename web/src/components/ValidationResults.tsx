@@ -1,10 +1,12 @@
 import React from 'react';
+import { TemplateMapping } from '../types/webhook';
 
 interface ValidationResultsProps {
-  errors?: string[];
+  errors: string[];
+  mappings?: TemplateMapping[];
 }
 
-export const ValidationResults: React.FC<ValidationResultsProps> = ({ errors = [] }) => {
+export const ValidationResults: React.FC<ValidationResultsProps> = ({ errors, mappings }) => {
   if (!errors || errors.length === 0) {
     return <div>No validation errors</div>;
   }

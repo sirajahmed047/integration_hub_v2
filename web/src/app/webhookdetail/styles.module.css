@@ -129,4 +129,18 @@
 
 .emptyState h4 {
   margin-bottom: 0.5rem;
+}
+
+.confidence {
+  font-size: 0.75rem;
+  color: var(--cds-text-helper);
+  margin-left: 0.5rem;
+}
+
+.jsonPreview {
+  background: var(--cds-layer-01);
+  padding: 1rem;
+  border-radius: 0.25rem;
+  overflow: auto;
+  max-height: 400px;
 } 

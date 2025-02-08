@@ -26,17 +26,14 @@ from api.ApiPush import apiPush
 from util.ConfigUtil import ConfigUtil
 from util.FileUtil import FileUtil
 from webhook.WebhookEnviziMapping import WebhookEnviziMapping
+from webhook.WebhookDataGiver import webhook_routes
 
-from routes.webhook_routes import webhook_routes
+import sys
+from pathlib import Path
 
-#### Logging Configuration
-logging.basicConfig(
-    format='%(asctime)s - %(levelname)s:%(message)s',
-    handlers=[
-        logging.StreamHandler(), #print to console
-    ],
-    level=logging.INFO
-)
+# Add the src directory to Python path
+current_dir = Path(__file__).resolve().parent
+sys.path.append(str(current_dir))
 
 app = Flask(__name__)
 app.register_blueprint(webhook_routes)
@@ -114,6 +111,13 @@ def transform_webhook():
         print("Mapping error:", str(e))
         return jsonify({"error": str(e)}), 500
 
+@app.before_request
+def log_request():
+    print(f"Received {request.method} request to {request.path}")
+    print("Request headers:", dict(request.headers))
+    print("Request form data:", dict(request.form))
+    print("Request files:", dict(request.files))
+
 ### Main method
 def main():
     logging.info("main started .....")
@@ -134,6 +138,10 @@ def main():
     
 
     ### Run the app
+    print("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.endpoint}: {rule.rule}")
+    
     app.run(host ='0.0.0.0', port = 3001, debug = False)
 
 if __name__ == '__main__':

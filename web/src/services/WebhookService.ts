@@ -2,133 +2,85 @@ import axios from 'axios';
 import { 
   WebhookConfig, 
   TemplateMapping, 
+  WebhookResponse,
+  TestResult,
   EnviziTemplate,
-  EnviziField,
-  TestResult 
+  EnviziField
 } from '../types/webhook';
-import { validateTransformedData } from '../utils/validation';
-import { templateStore } from '../types/webhook';
+import { ValidationService } from './ValidationService';
+import { MappingService } from './MappingService';
+import { TemplateService } from './TemplateService';
 
 interface WebhookRecord {
   [key: string]: any;  // For dynamic field access
 }
 
+interface ParsedTemplate {
+  name: string;
+  fields: EnviziField[];
+}
+
 export class WebhookService {
-  private sampleData: any;
+  private validationService: ValidationService;
+  public mappingService: MappingService;
+  private templateService: TemplateService;
 
   constructor(private baseUrl: string = '') {
-    this.sampleData = {}; // Initialize empty or with default data
+    this.validationService = new ValidationService();
+    this.mappingService = new MappingService();
+    this.templateService = new TemplateService(baseUrl);
   }
 
-  async executeWebhook(config: WebhookConfig, retries = 3): Promise<{
-    success: boolean;
-    data: any;
-    testMode?: boolean;
-    originalData: any;
-    records?: any[];
-    validationErrors?: string[];
-  }> {
+  async executeWebhook(config: WebhookConfig): Promise<WebhookResponse> {
     try {
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-          console.log('Executing webhook with config:', config);
-          
-          // First get the data from the external API
-          const response = await axios.post('/api/proxy', {
-            url: config.endpoint,
-            method: config.method || 'GET',
-            headers: config.headers || {},
-            data: config.data || {},
-          });
-
-          console.log('Webhook response:', response.data);
-
-          // Prepare transform payload
-          const transformPayload = {
-            webhook_detail_data: {
-              ...config,
-              data_template_type: "1-single",
-              envizi_template: "POC",
-              fields: config.mapping
-            },
-            webhook_execute_response: response.data,
-            locations: [],
-            accounts: [],
-            account_styles: [],
-            template_columns: [
-              "Organization",
-              "Location",
-              "Account Style Caption",
-              "Account Number",
-              "Account Name",
-              "Start Date",
-              "End Date",
-              "Usage Amount",
-              "Usage Unit",
-              "Cost Amount",
-              "Cost Unit",
-              "Supplier",
-              "Reference",
-              "Notes"
-            ]
-          };
-
-          console.log('Transform Payload:', JSON.stringify(transformPayload, null, 2));
-          
-          const transformResponse = await axios.post(
-            `/api/transform-webhook`, 
-            transformPayload
-          );
-
-          // Only attempt Envizi API call if not in test mode and envizi config exists
-          if (!config.isTestMode && config.envizi?.endpoint) {
-            await this.sendToEnvizi(transformResponse.data.processed_data, config.envizi);
-          }
-
-          // Only validate if mappings exist
-          if (config.mapping && config.mapping.length > 0) {
-            const validationErrors = validateTransformedData(
-              transformResponse.data.processed_data,
-              config.mapping,
-              config.envizi_template
-            );
-            return {
-              success: validationErrors.length === 0,
-              data: transformResponse.data.processed_data,
-              testMode: config.isTestMode,
-              originalData: response.data,
-              records: response.data.records,
-              validationErrors
-            };
-          }
-
-          return {
-            success: true,
-            data: transformResponse.data.processed_data,
-            testMode: config.isTestMode,
-            originalData: response.data,
-            records: response.data.records,
-            validationErrors: []
-          };
-        } catch (error: any) {
-          console.error(`Webhook execution attempt ${attempt} failed:`, error);
-          if (error.response) {
-            console.error('Error response:', error.response.data);
-          }
-          if (attempt === retries) throw error;
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        }
+      const configErrors = this.validationService.validateWebhookConfig(config);
+      if (configErrors.length > 0) {
+        throw new Error(`Invalid webhook configuration: ${configErrors.join(', ')}`);
       }
-      throw new Error('Max retries reached');
+
+      const response = await this.executeWithRetry(config);
+      const records = this.extractRecords(response.data);
+      
+      const template = await this.templateService.getTemplate(config.envizi_template);
+      if (!template) {
+        throw new Error(`Template ${config.envizi_template} not found`);
+      }
+
+      const mappings = config.mapping?.length > 0 
+        ? config.mapping 
+        : this.mappingService.suggestMappings(records[0], template);
+
+      const transformedData = this.mappingService.transformData(records, mappings, template);
+      const validationErrors = this.validationService.validateTransformedData(transformedData, template);
+
+      return {
+        success: true,
+        originalData: response.data,
+        records,
+        mappings,
+        transformedData,
+        validationErrors
+      };
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(`Network error: ${error.message}`);
-      }
+      console.error('Webhook execution failed:', error);
       throw error;
     }
   }
 
-  public async sendToEnvizi(data: any, enviziConfig: WebhookConfig['envizi']) {
+  private extractRecords(data: any): any[] {
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data && typeof data === 'object') {
+      const possibleArrays = Object.values(data).filter(Array.isArray);
+      if (possibleArrays.length > 0) {
+        return possibleArrays[0];
+      }
+    }
+    return [data];
+  }
+
+  async sendToEnvizi(data: any, enviziConfig: WebhookConfig['envizi']) {
     if (!enviziConfig?.endpoint || !enviziConfig?.organizationId) {
       throw new Error('Missing required Envizi configuration');
     }
@@ -148,7 +100,7 @@ export class WebhookService {
   async saveWebhook(config: WebhookConfig) {
     try {
       const response = await axios.post(
-        `/api/webhook/save`,
+        `${this.baseUrl}/api/webhook/save`,
         config
       );
       
@@ -165,12 +117,93 @@ export class WebhookService {
 
   async getWebhooks() {
     try {
-      const response = await axios.get(`/api/webhook/list`);
+      const response = await axios.get(`${this.baseUrl}/api/webhook/list`);
       return response.data;
     } catch (error) {
       console.error('Get webhooks failed:', error);
       throw error;
     }
+  }
+
+  async getWebhookMetrics(webhookId: string) {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/webhook/metrics/${webhookId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get webhook metrics failed:', error);
+      throw error;
+    }
+  }
+
+  async getWebhookStatus(webhookId: string) {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/webhook/status/${webhookId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get webhook status failed:', error);
+      throw error;
+    }
+  }
+
+  async updateScheduler(webhookId: string, enabled: boolean, interval?: number) {
+    try {
+      const response = await axios.post(`${this.baseUrl}/api/webhook/scheduler/${webhookId}`, {
+        enabled,
+        interval
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Update scheduler failed:', error);
+      throw error;
+    }
+  }
+
+  async getSchedulerStatus(webhookId: string) {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/webhook/scheduler/${webhookId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get scheduler status failed:', error);
+      throw error;
+    }
+  }
+
+  async getExecutionHistory(webhookId: string) {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/webhook/history/${webhookId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get execution history failed:', error);
+      throw error;
+    }
+  }
+
+  public async executeWithRetry(config: WebhookConfig, maxRetries = 3): Promise<any> {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const headers = {
+          ...config.headers,
+          'Content-Type': 'application/json'
+        };
+
+        const response = await axios({
+          method: config.method,
+          url: config.endpoint,
+          headers,
+          data: config.method !== 'GET' ? config.data : undefined
+        });
+
+        return response;
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxRetries) break;
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+    
+    throw lastError;
   }
 
   private validateTransformation(
@@ -253,11 +286,11 @@ export class WebhookService {
     return errors;
   }
 
-  private transformRecord(record: WebhookRecord, template: EnviziTemplate): WebhookRecord {
+  private transformRecord(record: WebhookRecord, template: EnviziTemplate, mappings: TemplateMapping[]): WebhookRecord {
     const transformed: WebhookRecord = {};
     
     // Map standard fields
-    template.fields.forEach(field => {
+    template.fields.forEach((field: EnviziField) => {
       let value = '';
       
       // Try to find matching field using different strategies
@@ -325,53 +358,43 @@ export class WebhookService {
       transformed[field.name] = value;
     });
     
+    // Apply mappings
+    mappings.forEach(mapping => {
+      const sourceValue = this.extractValueFromPath(record, mapping.sourcePath);
+      transformed[mapping.enviziField] = this.applyTransformation(sourceValue, mapping.transformation, mapping.enviziField);
+    });
+    
     return transformed;
   }
 
-  async transformData(config: WebhookConfig, data: any): Promise<TestResult> {
-    const template = templateStore.getTemplate(config.envizi_template);
-    if (!template) {
-      throw new Error(`Template ${config.envizi_template} not found`);
-    }
-
-    // Extract records from the response
-    const records: WebhookRecord[] = Array.isArray(data) ? data : [data];
+  private validateTransformedData(data: any[], template: EnviziTemplate): string[] {
+    const errors: string[] = [];
     
-    // Transform each record
-    const transformedData = records.map((record: WebhookRecord) => 
-      this.transformRecord(record, template)
-    );
+    data.forEach((record, index) => {
+      template.fields.forEach(field => {
+        if (field.required && !record[field.name]) {
+          errors.push(`Record ${index + 1}: Missing required field "${field.name}"`);
+        }
+        
+        const value = record[field.name];
+        if (value) {
+          switch (field.type) {
+            case 'number':
+              if (isNaN(Number(value))) {
+                errors.push(`Record ${index + 1}: "${field.name}" must be a number`);
+              }
+              break;
+            case 'date':
+              if (isNaN(Date.parse(value))) {
+                errors.push(`Record ${index + 1}: "${field.name}" must be a valid date`);
+              }
+              break;
+          }
+        }
+      });
+    });
     
-    console.log('Transformed Data:', transformedData);
-    
-    const validationErrors = validateTransformedData(
-      transformedData,
-      config.mapping,
-      config.envizi_template
-    );
-    
-    return {
-      success: true,
-      originalData: data,
-      records: records,
-      data: transformedData,
-      transformedData: transformedData,
-      validationErrors
-    };
-  }
-
-  private extractRecords(data: any): any[] {
-    // Handle different response structures
-    if (data.data?.webhook_execute_response?.records) {
-      return data.data.webhook_execute_response.records;
-    }
-    if (data.records) {
-      return data.records;
-    }
-    if (Array.isArray(data)) {
-      return data;
-    }
-    return [data];
+    return errors;
   }
 
   public applyTransformation(
@@ -452,168 +475,28 @@ export class WebhookService {
     return normalizedPath.split('.').reduce((obj, key) => obj?.[key], data);
   }
 
-  async updateScheduler(webhookId: string, enabled: boolean) {
-    try {
-      const response = await axios.post(`/api/webhook/scheduler`, {
-        id: webhookId,
-        enabled
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Scheduler update failed:', error);
-      throw error;
-    }
-  }
-
-  async getSchedulerStatus(webhookId: string) {
-    try {
-      const response = await axios.get(
-        `/api/webhook/scheduler/${webhookId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Get scheduler status failed:', error);
-      throw error;
-    }
-  }
-
-  async getExecutionHistory(webhookId: string) {
-    try {
-      const response = await axios.get(
-        `/api/webhook/history/${webhookId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Get history failed:', error);
-      throw error;
-    }
-  }
-
-  async clearHistory(webhookId: string) {
-    try {
-      const response = await axios.post(
-        `/api/webhook/history/${webhookId}/clear`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Clear history failed:', error);
-      throw error;
-    }
-  }
-
-  async getWebhookMetrics(webhookId: string) {
-    try {
-      const response = await axios.get(
-        `/api/webhook/metrics/${webhookId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Get metrics failed:', error);
-      throw error;
-    }
-  }
-
-  async getWebhookStatus(webhookId: string) {
-    try {
-      const response = await axios.get(
-        `/api/webhook/status/${webhookId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Get status failed:', error);
-      throw error;
-    }
-  }
-
   private extractValueFromPath(data: any, path: string): any {
     const normalizedPath = path.replace(/\[\*\]/g, '.0');
     return normalizedPath.split('.').reduce((obj, key) => obj?.[key], data);
   }
 
-  private validateTransformedData(data: any[], template: EnviziTemplate): string[] {
-    const errors: string[] = [];
-    
-    data.forEach((record, index) => {
-      template.fields.forEach(field => {
-        if (field.required && !record[field.name]) {
-          errors.push(`Record ${index + 1}: Missing required field "${field.name}"`);
-        }
-        
-        const value = record[field.name];
-        if (value) {
-          switch (field.type) {
-            case 'number':
-              if (isNaN(Number(value))) {
-                errors.push(`Record ${index + 1}: "${field.name}" must be a number`);
-              }
-              break;
-            case 'date':
-              if (isNaN(Date.parse(value))) {
-                errors.push(`Record ${index + 1}: "${field.name}" must be a valid date`);
-              }
-              break;
-          }
-        }
-      });
-    });
-    
-    return errors;
-  }
-
-  async testWebhook(config: WebhookConfig): Promise<TestResult> {
+  public async testWebhook(config: WebhookConfig): Promise<TestResult> {
     try {
-      // 1. Get API response
-      const response = await this.executeWebhook(config);
-      
-      // 2. Extract records - handle different response structures
-      let records: any[] = [];
-      if (response.originalData?.records) {
-        records = response.originalData.records;
-      } else if (Array.isArray(response.originalData)) {
-        records = response.originalData;
-      } else if (typeof response.originalData === 'object') {
-        records = [response.originalData];
+      const response = await axios.post(
+        `${this.baseUrl}/api/webhook/test`,
+        {
+          webhook_detail_data: config,
+          template: await this.templateService.getTemplate(config.envizi_template)
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      if (records.length === 0) {
-        throw new Error('No records found in the API response');
-      }
-
-      // 3. Get template and validate
-      const template = templateStore.getTemplate(config.envizi_template);
-      if (!template) {
-        throw new Error(`Template ${config.envizi_template} not found`);
-      }
-
-      // 4. Create intelligent field mappings
-      const suggestedMappings = this.suggestMappings(records[0], template.fields);
-      
-      // 5. Transform the data using mappings
-      const transformedData = records.slice(0, 5).map(record => {
-        const transformed: Record<string, any> = {};
-        template.fields.forEach(field => {
-          const mapping = suggestedMappings.find(m => m.enviziField === field.name);
-          if (mapping) {
-            transformed[field.name] = this.getValueFromPath(record, mapping.sourcePath);
-          } else {
-            // For unmapped fields, provide empty string to allow manual entry
-            transformed[field.name] = '';
-          }
-        });
-        return transformed;
-      });
-
-      console.log('Transformed Data:', transformedData); // Debug log
-
-      return {
-        success: true,
-        originalData: response.originalData,
-        records,
-        transformedData,
-        validationErrors: []
-      };
+      return response.data;
     } catch (error) {
-      console.error('Test webhook failed:', error);
+      console.error('Test webhook error:', error);
       throw error;
     }
   }
@@ -632,7 +515,8 @@ export class WebhookService {
           enviziField: field.name,
           sourcePath: matchingPath,
           required: field.required,
-          transformation: { type: 'direct' }
+          transformation: { type: 'direct' },
+          confidence: this.calculateConfidence(field.name, matchingPath) // Confidence score
         });
       }
     });
@@ -671,5 +555,31 @@ export class WebhookService {
 
   private getValueFromPath(obj: any, path: string): any {
     return path.split('.').reduce((curr, key) => curr?.[key], obj);
+  }
+
+  private calculateConfidence(fieldName: string, matchingPath: string): number {
+    // Implement confidence calculation logic based on the matching path
+    // This is a placeholder and should be replaced with actual implementation
+    return 0.8; // Placeholder confidence value
+  }
+
+  // Add transformData method to delegate to MappingService
+  async transformData(data: any[], mappings: TemplateMapping[], templateName: string): Promise<WebhookResponse> {
+    const template = await this.templateService.getTemplate(templateName);
+    if (!template) {
+      throw new Error(`Template ${templateName} not found`);
+    }
+    
+    const transformedData = this.mappingService.transformData(data, mappings, template);
+    const validationErrors = this.validationService.validateTransformedData(transformedData, template);
+    
+    return {
+      success: true,
+      originalData: data,
+      records: data,
+      mappings,
+      transformedData,
+      validationErrors
+    };
   }
 }
