@@ -1,12 +1,15 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, send_file
 import os
 import json
 import logging
 from xml.dom.minidom import Document 
+import io
+from datetime import datetime
 
 from util.FileUtil import FileUtil
 from webhook.WebhookMain import WebhookMain
 from webhook.WebhookSample import WebhookSample
+from util.ConfigUtil import ConfigUtil
 
 apiWebhook = Blueprint('api_webhook', __name__)
 
@@ -16,7 +19,7 @@ def createInstanceWebhookMain():
     fileUtil.start()
 
     ### TurboMain
-    configUtil = current_app.config["configUtil"]
+    configUtil = ConfigUtil()
     webhookMain = WebhookMain(fileUtil, configUtil)
 
     return webhookMain
@@ -246,3 +249,89 @@ def webhook_sample5():
     resp = webhookSample.sample5Webhook()
 
     return resp, 200
+
+@apiWebhook.route('/api/webhook/generate-and-upload', methods=['POST'])
+def webhook_generate_and_upload():
+    logging.info("welcome webhook_generate_and_upload...")
+    
+    payload = request.get_json()
+    data = payload.get('data')
+    envizi_config = payload.get('enviziConfig')
+    template = payload.get('template')
+    
+    if not all([data, envizi_config, template]):
+        return jsonify({
+            "success": False,
+            "error": "Missing required parameters"
+        }), 400
+    
+    try:
+        # Process data and generate Excel
+        webhook_main = createInstanceWebhookMain()
+        result = webhook_main.processForIngestion({
+            "data": data,
+            "envizi_template": template,
+            "envizi_config": envizi_config
+        }, True)  # True for pushToS3
+        
+        return jsonify({
+            "success": True,
+            "file_details": result
+        }), 200
+        
+    except Exception as e:
+        logging.error(f"Error in webhook_generate_and_upload: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@apiWebhook.route('/api/webhook/generate-excel', methods=['POST'])
+def webhook_generate_excel():
+    logging.info("welcome webhook_generate_excel...")
+    
+    payload = request.get_json()
+    data = payload.get('data')
+    envizi_config = payload.get('enviziConfig')
+    template = payload.get('template')
+    
+    if not all([data, template]):
+        return jsonify({
+            "success": False,
+            "error": "Missing required parameters"
+        }), 400
+    
+    try:
+        # Process data and generate Excel without S3 upload
+        webhook_main = createInstanceWebhookMain()
+        result = webhook_main.processForIngestion({
+            "data": data,
+            "envizi_template": template,
+            "envizi_config": envizi_config
+        }, False)  # False for no S3 upload
+        
+        # Read the generated Excel file
+        file_path = result.get('uploadedFile')
+        if not file_path or not os.path.exists(file_path):
+            raise Exception("Excel file not generated")
+            
+        with open(file_path, 'rb') as f:
+            excel_data = f.read()
+            
+        # Clean up the temporary file
+        os.remove(file_path)
+        
+        # Return the Excel file
+        return send_file(
+            io.BytesIO(excel_data),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f"envizi-data-{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        )
+        
+    except Exception as e:
+        logging.error(f"Error in webhook_generate_excel: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

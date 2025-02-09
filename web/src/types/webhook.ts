@@ -61,6 +61,23 @@ export interface TemplateMapping {
   confidence?: number;
 }
 
+export interface WebhookAuth {
+  enabled: boolean;
+  type: 'bearer' | 'api_key';
+  headerName?: string;
+  key?: string;
+}
+
+export type ApiKeyHeaderName = 'x-api-key' | 'auth-token' | 'api-key' | 'apikey' | 'x-auth-token';
+
+export const COMMON_API_KEY_HEADERS: ApiKeyHeaderName[] = [
+  'x-api-key',
+  'auth-token',
+  'api-key',
+  'apikey',
+  'x-auth-token'
+];
+
 export interface WebhookConfig {
   id?: string;
   name: string;
@@ -69,6 +86,7 @@ export interface WebhookConfig {
   method: string;
   envizi_template: string;
   mapping: TemplateMapping[];
+  auth?: WebhookAuth;
   scheduler: {
     enabled: boolean;
     interval: number;
@@ -84,6 +102,7 @@ export interface WebhookConfig {
     endpoint: string;
     organizationId: string;
   };
+  body?: any;
 }
 
 export type EnviziFieldType = 'string' | 'number' | 'date';

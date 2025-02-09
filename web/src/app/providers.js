@@ -12,7 +12,6 @@ import { Menu32 } from '@carbon/icons-react';
 import React, { useState } from 'react';
 
 import { Dashboard32, List32, Settings32 } from '@carbon/icons-react';
-import AppHeader from '@/components/AppHeader/AppHeader';
 import LoginPage from './login/LoginPage';
 
 export function Providers({ children }) {
@@ -25,7 +24,6 @@ export function Providers({ children }) {
   return (
     <div>
       <Theme theme="white">
-        <AppHeader />
         <Content>
           {/* {!isLoggedIn ? (
             <LoginPage onLogin={handleLogin} />

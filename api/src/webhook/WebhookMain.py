@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from typing import Dict, Optional, Any, Iterable, List
 import uuid
 
-# import getpass
 import logging 
 import os, json
+import pandas as pd
+from datetime import datetime
 
 from util.FileUtil import FileUtil
 from util.ConfigUtil import ConfigUtil
@@ -21,7 +22,6 @@ from webhook.WebhookDB import WebhookDB
 from webhook.WebhookEnviziMapping import WebhookEnviziMapping
 from webhook.WebhookRun import WebhookRun
 from CommonConstants import *
-from webhook.WebhookDataGiver import WebhookDataGiver
 from template.TemplateMain import TemplateMain
 from template.TemplateDataValidator import TemplateDataValidator
 from envizi.EnviziMain import EnviziMain
@@ -51,7 +51,6 @@ class WebhookMain(object):
         self.webhookEnviziMapping = WebhookEnviziMapping(self.fileUtil, self.configUtil)
         self.webhookRun = WebhookRun(self.fileUtil, self.configUtil)
         self.enviziMain = EnviziMain(self.fileUtil, self.configUtil)
-        self.webhookDataGiver = WebhookDataGiver(self.fileUtil, self.configUtil)
         self.templateMain = TemplateMain(self.fileUtil, self.configUtil)
         self.templateDataValidator = TemplateDataValidator(self.fileUtil, self.configUtil)
 
@@ -220,42 +219,168 @@ class WebhookMain(object):
         resp = self.processForIngestion (payload, False)
         return resp
     
-    def processForIngestion (self, webhook_detail_data, pushToS3):
-        self.logger.info("processForIngestion ... : ")
+    def processForIngestion(self, payload, pushToS3=False):
+        try:
+            self.logger.info(f"Starting processForIngestion with pushToS3={pushToS3}")
+            data = payload.get('data')
+            template = payload.get('envizi_template')
+            envizi_config = payload.get('envizi_config')
 
-        ### Retrive locations and accounts
-        locations = []
-        accounts = []
-        if (self.LOAD_ENVIZI_DATA == "TRUE") : 
-            list  = self.enviziMain.exportLocation()
-            locations = list["data"]
-            list = self.enviziMain.exportAccounts()
-            accounts = list["data"]     
+            if not all([data, template]):
+                raise Exception("Missing required data or template")
 
-        ### Run webhook
-        webhook_execute_response = self.webhookRun.run_webhook(webhook_detail_data)
+            self.logger.info(f"Processing {len(data)} records with template {template}")
 
-        ### template_columns
-        envizi_template = webhook_detail_data["envizi_template"]
-        template_columns = self.templateMain.getTemplateColumns(envizi_template)
+            # Generate Excel file
+            output_dir = self.fileUtil.getOutputFolder()
+            file_name = f"envizi-data-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.xlsx"
+            file_path = os.path.join(output_dir, file_name)
 
-        mydata = {}
-        mydata["locations"] = locations
-        mydata["accounts"] = accounts   
-        mydata["account_styles"] = []   
-        mydata["webhook_detail_data"] = webhook_detail_data   
-        mydata["webhook_execute_response"] = webhook_execute_response   
-        mydata["template_columns"] = template_columns   
+            self.logger.info(f"Will generate Excel file at: {file_path}")
 
-        ### Mapping
-        resp_mapping = self.webhookEnviziMapping.map_webhook_data_to_envizi_format(mydata)
-        processed_data = resp_mapping["processed_data"] 
-        validation_errors = resp_mapping["validation_errors"] 
+            # Create Excel file with data validation
+            excel_data = []
+            validation_errors = []
 
-        ### Generate the excel and push to S3
-        resp = self.templateMain.generate_excel_and_push_to_s3(envizi_template, processed_data, pushToS3)
+            for idx, record in enumerate(data):
+                try:
+                    transformed_record = self.transformRecord(record, template)
+                    validation_result = self.validateRecord(transformed_record, template)
+                    
+                    if validation_result['isValid']:
+                        excel_data.append(transformed_record)
+                    else:
+                        validation_errors.extend([f"Record {idx + 1}: {err}" for err in validation_result['errors']])
+                except Exception as e:
+                    self.logger.error(f"Error processing record {idx + 1}: {str(e)}")
+                    validation_errors.append(f"Record {idx + 1}: Processing error - {str(e)}")
 
-        ### Generate Response
-        resp["validation_errors"] = validation_errors
-        resp["template_columns"] = template_columns
-        return resp
+            self.logger.info(f"Processed {len(excel_data)} valid records, found {len(validation_errors)} errors")
+
+            # Create Excel writer
+            writer = pd.ExcelWriter(file_path, engine='xlsxwriter')
+
+            # Write data to 'Data' sheet
+            df_data = pd.DataFrame(excel_data)
+            df_data.to_excel(writer, sheet_name='Data', index=False)
+
+            # Write validation errors to 'Validation' sheet if any
+            if validation_errors:
+                df_validation = pd.DataFrame(validation_errors, columns=['Error'])
+                df_validation.to_excel(writer, sheet_name='Validation', index=False)
+
+            # Save and close
+            writer.close()
+
+            self.logger.info(f"Excel file generated successfully at {file_path}")
+
+            result = {
+                'success': True,
+                'file_path': file_path,
+                'file_name': file_name,
+                'validation_errors': validation_errors
+            }
+
+            # Push to S3 if requested
+            if pushToS3 and envizi_config:
+                self.logger.info("Pushing file to S3...")
+                s3_result = self.pushToS3(file_path, envizi_config)
+                result.update(s3_result)
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error in processForIngestion: {str(e)}")
+            raise
+
+    def transformRecord(self, record, template):
+        """Transform a record according to the template format"""
+        transformed = {}
+        
+        # Get template fields
+        template_fields = self.getTemplateFields(template)
+        
+        for field in template_fields:
+            field_name = field['name']
+            field_type = field['type']
+            
+            # Get value from record, using field name as key
+            value = record.get(field_name)
+            
+            # Transform value based on type
+            if value is not None:
+                if field_type == 'date':
+                    try:
+                        value = pd.to_datetime(value).strftime('%Y-%m-%d')
+                    except:
+                        value = None
+                elif field_type == 'number':
+                    try:
+                        value = float(value)
+                    except:
+                        value = None
+                else:
+                    value = str(value)
+                
+            transformed[field_name] = value
+        
+        return transformed
+
+    def validateRecord(self, record, template):
+        """Validate a record against the template requirements"""
+        errors = []
+        template_fields = self.getTemplateFields(template)
+        
+        for field in template_fields:
+            field_name = field['name']
+            value = record.get(field_name)
+            
+            # Check required fields
+            if field['required'] and (value is None or value == ''):
+                errors.append(f"Required field '{field_name}' is missing or empty")
+                continue
+            
+            # Validate value type if present
+            if value is not None and value != '':
+                if field['type'] == 'date':
+                    try:
+                        pd.to_datetime(value)
+                    except:
+                        errors.append(f"Invalid date format for field '{field_name}'")
+                elif field['type'] == 'number':
+                    try:
+                        float(value)
+                    except:
+                        errors.append(f"Invalid number format for field '{field_name}'")
+        
+        return {
+            'isValid': len(errors) == 0,
+            'errors': errors
+        }
+
+    def getTemplateFields(self, template_name):
+        """Get fields for a template"""
+        # First check if it's the default template
+        if template_name == "Account_Setup_and_Data_Load_PM-C_template":
+            return [
+                {"name": "Organization Link", "type": "string", "required": True},
+                {"name": "Organization", "type": "string", "required": True},
+                {"name": "Location", "type": "string", "required": True},
+                {"name": "Location Ref", "type": "string", "required": False},
+                {"name": "Account Style Link", "type": "string", "required": True},
+                {"name": "Account Style Caption", "type": "string", "required": True},
+                {"name": "Account Number", "type": "string", "required": True},
+                {"name": "Record Start YYYY-MM-DD", "type": "date", "required": True},
+                {"name": "Record End YYYY-MM-DD", "type": "date", "required": True},
+                {"name": "Quantity", "type": "number", "required": True},
+                {"name": "Total Cost", "type": "number", "required": False}
+            ]
+        
+        # Otherwise load from templates directory
+        template_path = os.path.join(self.fileUtil.BASE_DIR, 'data-store', 'templates', f"{template_name}.json")
+        if os.path.exists(template_path):
+            with open(template_path, 'r') as f:
+                template = json.load(f)
+                return template['fields']
+            
+        raise Exception(f"Template {template_name} not found")

@@ -38,8 +38,8 @@ export class WebhookService {
         throw new Error(`Invalid webhook configuration: ${configErrors.join(', ')}`);
       }
 
-      const response = await this.executeWithRetry(config);
-      const records = this.extractRecords(response.data);
+      const response = await WebhookService.executeWithRetry(config);
+      const records = this.extractRecords(response);
       
       const template = await this.templateService.getTemplate(config.envizi_template);
       if (!template) {
@@ -55,7 +55,7 @@ export class WebhookService {
 
       return {
         success: true,
-        originalData: response.data,
+        originalData: response,
         records,
         mappings,
         transformedData,
@@ -178,32 +178,50 @@ export class WebhookService {
     }
   }
 
-  public async executeWithRetry(config: WebhookConfig, maxRetries = 3): Promise<any> {
-    let lastError;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const headers = {
-          ...config.headers,
-          'Content-Type': 'application/json'
-        };
+  private static buildHeaders(config: WebhookConfig): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-        const response = await axios({
-          method: config.method,
-          url: config.endpoint,
-          headers,
-          data: config.method !== 'GET' ? config.data : undefined
-        });
-
-        return response;
-      } catch (error) {
-        lastError = error;
-        if (attempt === maxRetries) break;
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    if (config.auth?.enabled && config.auth?.key) {
+      if (config.auth.type === 'bearer') {
+        headers['Authorization'] = `Bearer ${config.auth.key}`;
+      } else if (config.auth.type === 'api_key') {
+        headers[config.auth.headerName || 'auth-token'] = config.auth.key;
       }
     }
-    
-    throw lastError;
+
+    return headers;
+  }
+
+  public static async executeWithRetry(config: WebhookConfig, retries = 3): Promise<any> {
+    try {
+      const headers = WebhookService.buildHeaders(config);
+      
+      // Use proxy endpoint for external API calls
+      const response = await axios({
+        method: 'POST',
+        url: `${process.env.NEXT_PUBLIC_API_URL || ''}/api/webhook/proxy`,
+        data: {
+          url: config.endpoint,
+          method: config.method,
+          headers,
+          body: config.method !== 'GET' ? config.body : undefined
+        }
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Proxy request failed');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      if (retries > 0 && axios.isAxiosError(error)) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return WebhookService.executeWithRetry(config, retries - 1);
+      }
+      throw error;
+    }
   }
 
   private validateTransformation(
